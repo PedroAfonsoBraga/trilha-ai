@@ -1,2 +1,40 @@
 sprint-*.md
 CLAUDE.md
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Packages and builds
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+coverage/
+htmlcov/
