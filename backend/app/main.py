@@ -1,9 +1,12 @@
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import billing
+load_dotenv()
+
+from app.routers import billing, documents
 
 
 @asynccontextmanager
@@ -27,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(billing.router, prefix="/api/billing", tags=["billing"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 
 
 @app.get("/api/health")

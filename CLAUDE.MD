@@ -11,7 +11,7 @@ Nome: Trilha (definitivo).
 - Frontend: Next.js 14 (App Router) + Tailwind + shadcn/ui → Vercel
 - Backend: FastAPI (Python 3.11) → Railway
 - Banco: Supabase (PostgreSQL + pgvector + Auth + Storage)
-- IA: Claude API (Sonnet) com prompt caching
+- IA: DeepSeek V4 Flash (chat completions) via httpx
 - Embeddings: Voyage-3-lite
 - Pagamentos: Stripe (Checkout + Customer Portal + webhooks)
 - Email: Resend + React Email
@@ -22,7 +22,7 @@ Nome: Trilha (definitivo).
 ## Regras obrigatórias
 - Async/await em todo o backend — sem código síncrono em rotas
 - Verificar subscription.status SEMPRE no backend, nunca no frontend
-- Prompt caching ativo em todas as chamadas Claude com docs > 2k tokens
+- Usar DeepSeek Chat completions API em todas as chamadas com docs > 2k tokens
 - RLS ativo em todas as tabelas Supabase desde a migration 001
 - Variáveis de ambiente: nunca hardcodar keys no código
 
@@ -36,7 +36,7 @@ private: sk_test_xxxx
 - Pro (R$39,90): tudo ilimitado + Concurso Assistant
 
 ## Sprint atual
-Sprint 0 — Fundação
+Sprint 1 — Concurso Assistant + PDF (em andamento)
 Ver docs/learnings/session-notes.md para status detalhado.
 
 ## Como iniciar cada sessão
