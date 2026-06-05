@@ -6,6 +6,9 @@ session-notes.md
 .vscode/
 .idea/
 
+# Documentation
+docs/
+
 # Python
 __pycache__/
 *.py[cod]
