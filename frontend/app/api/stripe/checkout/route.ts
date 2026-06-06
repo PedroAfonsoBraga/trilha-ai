@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       customer_email: user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/dashboard?checkout=success`,
-      cancel_url: `${origin}/planos?checkout=canceled`,
+      cancel_url: `${origin}/?checkout=canceled`,
       metadata: {
         user_id: user.id,
       },

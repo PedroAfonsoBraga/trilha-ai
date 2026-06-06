@@ -19,6 +19,8 @@ def get_supabase() -> Client:
 SUBSCRIPTION_PLAN_MAP = {
     "price_1TeSV1JcyDCmwkxi6MP6xscY": "estudante",
     "price_1TeSV4JcyDCmwkxiIXNSXx4X": "pro",
+    "price_1Tf8krJcyDCmwkxiXWDOxCde": "estudante",
+    "price_1Tf8ktJcyDCmwkxieFJNkRfj": "pro",
 }
 
 
