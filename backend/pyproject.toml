@@ -19,6 +19,7 @@ dependencies = [
     "ics>=0.7.0",
     "openai>=1.0.0",
     "pytesseract>=0.3.0",
+    "genanki>=0.13.0",
 ]
 
 [project.optional-dependencies]

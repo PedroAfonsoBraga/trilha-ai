@@ -100,7 +100,7 @@ async def gerar_fichamento_ia(texto: str) -> dict:
     return _try_parse_json(content)
 
 
-def criar_docx_fichamento(fichamento: dict) -> bytes:
+def criar_docx_fichamento(fichamento: dict, plano: str = "free") -> bytes:
     doc = Document()
 
     style = doc.styles["Normal"]
@@ -155,6 +155,18 @@ def criar_docx_fichamento(fichamento: dict) -> bytes:
     doc.add_heading("COMENTÁRIOS", level=2)
     p = doc.add_paragraph(fichamento.get("comentarios", "Não identificado"))
     p.paragraph_format.first_line_indent = Cm(1.25)
+
+    # Footer branding
+    footer_text = "Gerado com Trilha — Inteligência Artificial para seus estudos"
+    if plano == "free":
+        footer_text += " | Plano Gratuito"
+
+    footer_p = doc.add_paragraph()
+    footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = footer_p.add_run(footer_text)
+    run.font.size = Pt(9)
+    run.font.color.rgb = RGBColor(128, 128, 128)
+    run.font.italic = True
 
     buf = io.BytesIO()
     doc.save(buf)

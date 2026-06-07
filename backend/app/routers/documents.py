@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
 from app.middleware.auth import get_current_user
-from app.services import pdf_extractor, edital_parser, schedule_generator, ics_service, fichamento_service, rate_limiter
+from app.services import pdf_extractor, edital_parser, schedule_generator, ics_service, fichamento_service, flashcard_service, anki_service, rate_limiter
 
 load_dotenv()
 
@@ -189,7 +189,8 @@ async def download_ics(doc_id: str, user: dict = Depends(get_current_user)):
     if not cronograma:
         raise HTTPException(status_code=400, detail="Cronograma ainda não foi gerado")
 
-    ics_bytes = ics_service.criar_calendario_ics(cronograma)
+    plano = rate_limiter.get_user_plan(user["id"])
+    ics_bytes = ics_service.criar_calendario_ics(cronograma, plano=plano)
 
     return Response(
         content=ics_bytes,
@@ -234,12 +235,108 @@ async def download_fichamento_docx(doc_id: str, user: dict = Depends(get_current
     if not fichamento:
         raise HTTPException(status_code=400, detail="Fichamento ainda não foi gerado")
 
-    docx_bytes = fichamento_service.criar_docx_fichamento(fichamento)
+    plano = rate_limiter.get_user_plan(user["id"])
+    docx_bytes = fichamento_service.criar_docx_fichamento(fichamento, plano=plano)
 
     return Response(
         content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={
             "Content-Disposition": f"attachment; filename=fichamento_{doc_id[:8]}.docx"
+        },
+    )
+
+
+# ============================================================
+# Flashcards
+# ============================================================
+
+
+@router.post("/{doc_id}/flashcards")
+async def generate_flashcards(doc_id: str, user: dict = Depends(get_current_user)):
+    doc = _fetch_doc(doc_id, user["id"])
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    texto = doc.get("texto_extraido")
+    if not texto:
+        raise HTTPException(status_code=400, detail="Documento sem texto extraído")
+
+    if not rate_limiter.check_flashcard_per_document_limit(user["id"], doc_id, max_free=5):
+        raise HTTPException(status_code=429, detail="Limite de 5 flashcards por PDF no plano Free")
+
+    plano = rate_limiter.get_user_plan(user["id"])
+    max_cards = 5 if plano == "free" else 20
+
+    flashcards = await flashcard_service.gerar_flashcards_ia(texto, max_cards=max_cards)
+
+    supabase = get_admin_supabase()
+    inserted = []
+    for fc in flashcards:
+        result = (
+            supabase.table("flashcards")
+            .insert({
+                "user_id": user["id"],
+                "document_id": doc_id,
+                "frente": fc.get("frente", ""),
+                "verso": fc.get("verso", ""),
+                "tags": fc.get("tags", []),
+            })
+            .execute()
+        )
+        if result.data:
+            inserted.append(result.data[0])
+
+    return {"flashcards": inserted, "total": len(inserted)}
+
+
+@router.get("/{doc_id}/flashcards")
+async def list_flashcards(doc_id: str, user: dict = Depends(get_current_user)):
+    doc = _fetch_doc(doc_id, user["id"])
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    supabase = get_admin_supabase()
+    result = (
+        supabase.table("flashcards")
+        .select("*")
+        .eq("user_id", user["id"])
+        .eq("document_id", doc_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return result.data or []
+
+
+@router.get("/{doc_id}/flashcards.apkg")
+async def download_flashcards_apkg(doc_id: str, user: dict = Depends(get_current_user)):
+    doc = _fetch_doc(doc_id, user["id"], select="metadata, nome_original")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    supabase = get_admin_supabase()
+    result = (
+        supabase.table("flashcards")
+        .select("*")
+        .eq("user_id", user["id"])
+        .eq("document_id", doc_id)
+        .order("created_at")
+        .execute()
+    )
+
+    flashcards = result.data or []
+    if not flashcards:
+        raise HTTPException(status_code=400, detail="Nenhum flashcard gerado para este documento")
+
+    plano = rate_limiter.get_user_plan(user["id"])
+    nome = doc.get("nome_original", "documento").replace(".pdf", "")
+    apkg_bytes = anki_service.criar_apkg(flashcards, deck_name=nome, plano=plano)
+
+    return Response(
+        content=apkg_bytes,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename=flashcards_{doc_id[:8]}.apkg"
         },
     )

@@ -7,6 +7,7 @@ import type {
   ParsedEdital,
   CronogramaItem,
   FichamentoData,
+  Flashcard,
 } from "@/types/documents";
 
 interface ResultTabsProps {
@@ -46,14 +47,17 @@ export default function ResultTabs({
   fichamento: initialFichamento,
 }: ResultTabsProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"parsed" | "cronograma" | "fichamento">(
+  const [activeTab, setActiveTab] = useState<"parsed" | "cronograma" | "fichamento" | "flashcards">(
     doc.tipo === "edital" ? "parsed" : "fichamento"
   );
   const [parsed, setParsed] = useState<ParsedEdital | null>(initialParsed);
   const [cronograma, setCronograma] = useState<CronogramaItem[] | null>(initialCronograma);
   const [fichamento, setFichamento] = useState<FichamentoData | null>(initialFichamento);
+  const [flashcards, setFlashcards] = useState<Flashcard[] | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   async function handleParse() {
     setLoading("parsing");
@@ -97,6 +101,69 @@ export default function ResultTabs({
     }
   }
 
+  async function handleFlashcards() {
+    setLoading("flashcards");
+    setError(null);
+    try {
+      const result = await fetchApi(`/api/documents/${docId}/flashcards`, accessToken, { method: "POST" });
+      if (result?.flashcards) {
+        setFlashcards(result.flashcards);
+      } else {
+        const list = await fetchApi(`/api/documents/${docId}/flashcards`, accessToken);
+        if (list) setFlashcards(list);
+      }
+    } catch {
+      setError("Erro ao gerar flashcards");
+    } finally {
+      setLoading(null);
+      router.refresh();
+    }
+  }
+
+  async function loadFlashcards() {
+    setLoading("loading_flashcards");
+    setError(null);
+    try {
+      const list = await fetchApi(`/api/documents/${docId}/flashcards`, accessToken);
+      if (list) setFlashcards(list);
+    } catch {
+      setError("Erro ao carregar flashcards");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleShare() {
+    if (shareUrl) {
+      await navigator.clipboard.writeText(`${window.location.origin}${shareUrl}`);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+      return;
+    }
+
+    setLoading("share");
+    setError(null);
+    const exportType = activeTab === "cronograma" ? "cronograma" : activeTab === "fichamento" ? "fichamento" : "flashcards";
+    try {
+      const result = await fetchApi(
+        `/api/share/${docId}/${exportType}`,
+        accessToken,
+        { method: "POST" }
+      );
+      if (result) {
+        const fullUrl = `${window.location.origin}${result.url}`;
+        setShareUrl(result.url);
+        await navigator.clipboard.writeText(fullUrl);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      }
+    } catch {
+      setError("Erro ao criar link de compartilhamento");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   const tabs = [
     ...(doc.tipo === "edital"
       ? [
@@ -105,6 +172,7 @@ export default function ResultTabs({
         ]
       : []),
     { key: "fichamento" as const, label: "Fichamento ABNT" },
+    { key: "flashcards" as const, label: "Flashcards" },
   ];
 
   return (
@@ -123,6 +191,28 @@ export default function ResultTabs({
             {tab.label}
           </button>
         ))}
+        <div className="ml-auto flex items-center">
+          <button
+            onClick={handleShare}
+            disabled={loading === "share"}
+            className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
+          >
+            {shareCopied ? (
+              <>Link copiado!</>
+            ) : loading === "share" ? (
+              <>Criando link...</>
+            ) : shareUrl ? (
+              <>Copiar link</>
+            ) : (
+              <>
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Compartilhar
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -183,6 +273,34 @@ export default function ResultTabs({
               >
                 {loading === "fichamento" ? "Gerando..." : "Gerar fichamento"}
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "flashcards" && (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          {flashcards && flashcards.length > 0 ? (
+            <FlashcardsView flashcards={flashcards} docId={docId} />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-slate-500 mb-4">Nenhum flashcard gerado</p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={handleFlashcards}
+                  disabled={loading === "flashcards"}
+                  className="rounded-lg bg-teal-600 px-4 py-2 text-sm text-white hover:bg-teal-700 disabled:opacity-50"
+                >
+                  {loading === "flashcards" ? "Gerando..." : "Gerar flashcards"}
+                </button>
+                <button
+                  onClick={loadFlashcards}
+                  disabled={loading === "loading_flashcards"}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:border-teal-300 transition-colors"
+                >
+                  {loading === "loading_flashcards" ? "Carregando..." : "Carregar existentes"}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -383,6 +501,63 @@ function FichamentoView({ fichamento, docId }: { fichamento: FichamentoData; doc
           <p className="text-slate-700 mt-1 text-sm">{fichamento.comentarios}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function FlashcardsView({ flashcards, docId }: { flashcards: Flashcard[]; docId: string }) {
+  const [flipped, setFlipped] = useState<Set<string>>(new Set());
+
+  function toggleFlip(id: string) {
+    const next = new Set(flipped);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setFlipped(next);
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex gap-2">
+        <a
+          href={`${API_URL}/api/documents/${docId}/flashcards.apkg`}
+          className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm text-white hover:bg-teal-700 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Baixar .apkg (Anki)
+        </a>
+        <span className="text-sm text-slate-400 flex items-center">
+          {flashcards.length} flashcard{flashcards.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {flashcards.map((fc) => (
+          <button
+            key={fc.id}
+            onClick={() => toggleFlip(fc.id)}
+            className="rounded-lg border border-slate-200 p-4 text-left hover:border-teal-300 transition-all min-h-[120px]"
+          >
+            {flipped.has(fc.id) ? (
+              <p className="text-slate-700 text-sm leading-relaxed">{fc.verso}</p>
+            ) : (
+              <p className="font-medium text-slate-900">{fc.frente}</p>
+            )}
+            {fc.tags && fc.tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1">
+                {fc.tags.map((tag, j) => (
+                  <span key={j} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="mt-3 text-xs text-slate-400">
+              {flipped.has(fc.id) ? "Clique para ver a frente" : "Clique para ver o verso"}
+            </p>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
