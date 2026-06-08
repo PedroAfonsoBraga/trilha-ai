@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from app.routers import billing, documents
+from app.routers import billing, documents, sharing, profile
 
 
 @asynccontextmanager
@@ -31,6 +31,8 @@ app.add_middleware(
 
 app.include_router(billing.router, prefix="/api/billing", tags=["billing"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(sharing.router, prefix="/api/share", tags=["sharing"])
+app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
 
 
 @app.get("/api/health")

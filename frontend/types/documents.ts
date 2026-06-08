@@ -61,3 +61,29 @@ export interface FichamentoData {
   conclusao: string;
   comentarios: string;
 }
+
+export interface Flashcard {
+  id: string;
+  user_id: string;
+  document_id: string;
+  frente: string;
+  verso: string;
+  tags: string[];
+  easiness_factor: number;
+  repetitions: number;
+  interval_days: number;
+  next_review: string;
+  created_at: string;
+}
+
+export interface ShareLink {
+  url: string;
+  expires_at: string;
+  existing: boolean;
+}
+
+export interface SharedContent {
+  export_type: "cronograma" | "fichamento" | "flashcards";
+  nome_original: string;
+  content: unknown;
+}

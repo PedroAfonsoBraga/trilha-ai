@@ -3,9 +3,13 @@ from datetime import date, datetime, timedelta
 from ics import Calendar, Event
 
 
-def criar_calendario_ics(cronograma: list[dict], titulo: str = "Cronograma de Estudos") -> bytes:
+def criar_calendario_ics(cronograma: list[dict], titulo: str = "Cronograma de Estudos", plano: str = "free") -> bytes:
     cal = Calendar()
     cal.creator = "Trilha — Cronograma de Estudos"
+
+    footer_note = "\n\n---\nGerado com Trilha — Inteligência Artificial para seus estudos"
+    if plano == "free":
+        footer_note += "\nPlano Gratuito"
 
     for item in cronograma:
         ev = Event()
@@ -13,7 +17,8 @@ def criar_calendario_ics(cronograma: list[dict], titulo: str = "Cronograma de Es
         ev.description = (
             f"Disciplina: {item['disciplina']}\n"
             f"Horas de estudo: {item['horas']}h\n"
-            f"Semana {item['semana']}\n"
+            f"Semana {item['semana']}"
+            f"{footer_note}"
         )
         ev.location = "Estudo em casa"
 
