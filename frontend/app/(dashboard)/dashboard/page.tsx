@@ -66,12 +66,12 @@ export default async function DashboardPage() {
             </p>
           </a>
           <a
-            href="/dashboard/concurso"
+            href="/dashboard/chat"
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
           >
-            <h2 className="text-lg font-semibold text-slate-900">Flashcards IA</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Chat com Documentos</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Gere flashcards automaticamente e exporte para o Anki.
+              Converse com seus editais e PDFs — tire dúvidas com IA contextual.
             </p>
           </a>
         </div>

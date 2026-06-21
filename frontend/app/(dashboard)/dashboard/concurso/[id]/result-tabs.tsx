@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type {
   Document,
@@ -8,6 +8,7 @@ import type {
   CronogramaItem,
   FichamentoData,
   Flashcard,
+  ProgressSummary,
 } from "@/types/documents";
 
 interface ResultTabsProps {
@@ -54,10 +55,26 @@ export default function ResultTabs({
   const [cronograma, setCronograma] = useState<CronogramaItem[] | null>(initialCronograma);
   const [fichamento, setFichamento] = useState<FichamentoData | null>(initialFichamento);
   const [flashcards, setFlashcards] = useState<Flashcard[] | null>(null);
+  const [progressSummary, setProgressSummary] = useState<ProgressSummary | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+
+  const loadProgress = useCallback(async () => {
+    try {
+      const result = await fetchApi(`/api/documents/${docId}/progress`, accessToken);
+      if (result) {
+        setProgressSummary(result.summary || null);
+      }
+    } catch { /* silent */ }
+  }, [docId, accessToken]);
+
+  useEffect(() => {
+    if (cronograma && cronograma.length > 0) {
+      loadProgress();
+    }
+  }, [cronograma, loadProgress]);
 
   async function handleParse() {
     setLoading("parsing");
@@ -84,6 +101,77 @@ export default function ResultTabs({
     } finally {
       setLoading(null);
       router.refresh();
+    }
+  }
+
+  async function handleAdjustedSchedule() {
+    setLoading("adjusted");
+    setError(null);
+    try {
+      const result = await fetchApi(`/api/documents/${docId}/cronograma/ajustado`, accessToken, { method: "POST" });
+      if (result) setCronograma(result);
+    } catch {
+      setError("Erro ao gerar cronograma ajustado");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleUrgencySchedule() {
+    setLoading("urgency");
+    setError(null);
+    try {
+      const result = await fetchApi(
+        `/api/documents/${docId}/cronograma/urgencia`,
+        accessToken,
+        { method: "POST", body: JSON.stringify({ horas_por_dia: 8 }) }
+      );
+      if (result) setCronograma(result);
+    } catch {
+      setError("Erro ao gerar modo urgência");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleRecalculate() {
+    setLoading("recalculate");
+    setError(null);
+    try {
+      const result = await fetchApi(`/api/documents/${docId}/cronograma/recalcular`, accessToken, { method: "POST" });
+      if (result) setCronograma(result);
+    } catch {
+      setError("Erro ao recalcular cronograma");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleToggleProgress(semana: number, disciplina: string, currentlyCompleted: boolean) {
+    try {
+      await fetchApi(
+        `/api/documents/${docId}/progress`,
+        accessToken,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            semana,
+            disciplina,
+            completed: !currentlyCompleted,
+            horas_estudadas: !currentlyCompleted ? 2 : 0,
+          }),
+        }
+      );
+      setCronograma((prev) =>
+        prev?.map((item) =>
+          item.semana === semana && item.disciplina === disciplina
+            ? { ...item, completed: !currentlyCompleted }
+            : item
+        ) ?? null
+      );
+      loadProgress();
+    } catch {
+      setError("Erro ao atualizar progresso");
     }
   }
 
@@ -241,7 +329,16 @@ export default function ResultTabs({
       {activeTab === "cronograma" && (
         <div className="rounded-xl bg-white p-6 shadow-sm">
           {cronograma && cronograma.length > 0 ? (
-            <ScheduleView cronograma={cronograma} docId={docId} />
+            <ScheduleView
+              cronograma={cronograma}
+              docId={docId}
+              loading={loading}
+              progressSummary={progressSummary}
+              onToggleProgress={handleToggleProgress}
+              onAdjustedSchedule={handleAdjustedSchedule}
+              onUrgencySchedule={handleUrgencySchedule}
+              onRecalculate={handleRecalculate}
+            />
           ) : (
             <div className="text-center py-8">
               <p className="text-slate-500 mb-4">
@@ -386,7 +483,25 @@ function ParsedView({ parsed }: { parsed: ParsedEdital }) {
   );
 }
 
-function ScheduleView({ cronograma, docId }: { cronograma: CronogramaItem[]; docId: string }) {
+function ScheduleView({
+  cronograma,
+  docId,
+  loading,
+  progressSummary,
+  onToggleProgress,
+  onAdjustedSchedule,
+  onUrgencySchedule,
+  onRecalculate,
+}: {
+  cronograma: CronogramaItem[];
+  docId: string;
+  loading: string | null;
+  progressSummary: ProgressSummary | null;
+  onToggleProgress: (semana: number, disciplina: string, completed: boolean) => void;
+  onAdjustedSchedule: () => void;
+  onUrgencySchedule: () => void;
+  onRecalculate: () => void;
+}) {
   const semanas = new Map<number, CronogramaItem[]>();
   for (const item of cronograma) {
     const s = item.semana;
@@ -396,7 +511,7 @@ function ScheduleView({ cronograma, docId }: { cronograma: CronogramaItem[]; doc
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
         <a
           href={`${API_URL}/api/documents/${docId}/cronograma.ics`}
           className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm text-white hover:bg-teal-700 transition-colors"
@@ -404,9 +519,56 @@ function ScheduleView({ cronograma, docId }: { cronograma: CronogramaItem[]; doc
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          Baixar .ics (Google Calendar)
+          Baixar .ics
         </a>
+        <button
+          onClick={onAdjustedSchedule}
+          disabled={loading === "adjusted"}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-teal-300 hover:text-teal-600 transition-colors disabled:opacity-50"
+        >
+          {loading === "adjusted" ? "Ajustando..." : "Cronograma ajustado"}
+        </button>
+        <button
+          onClick={onUrgencySchedule}
+          disabled={loading === "urgency"}
+          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+        >
+          {loading === "urgency" ? "Gerando..." : "Modo urgência"}
+        </button>
+        <button
+          onClick={onRecalculate}
+          disabled={loading === "recalculate"}
+          className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-50"
+        >
+          {loading === "recalculate" ? "Recalculando..." : "Recalcular por atraso"}
+        </button>
       </div>
+
+      {progressSummary && (
+        <div className="mb-4 rounded-lg bg-slate-50 p-3 border border-slate-200">
+          <div className="flex items-center gap-4 text-sm">
+            <div>
+              <span className="text-slate-500">Progresso: </span>
+              <span className="font-medium text-slate-900">
+                {progressSummary.completed_items}/{progressSummary.total_items} ({progressSummary.completion_rate}%)
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-500">Horas: </span>
+              <span className="font-medium text-slate-900">{progressSummary.total_horas}h</span>
+            </div>
+            <div className="flex-1">
+              <div className="h-2 rounded-full bg-slate-200">
+                <div
+                  className="h-2 rounded-full bg-teal-500 transition-all"
+                  style={{ width: `${progressSummary.completion_rate}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         {Array.from(semanas.entries()).map(([semana, itens]) => (
           <div key={semana} className="border border-slate-200 rounded-lg p-4">
@@ -415,9 +577,32 @@ function ScheduleView({ cronograma, docId }: { cronograma: CronogramaItem[]; doc
             </h3>
             <div className="space-y-1">
               {itens.map((item, i) => (
-                <div key={i} className="flex justify-between text-sm">
-                  <span className="text-slate-700">{item.disciplina}</span>
-                  <span className="text-slate-500">{item.horas}h</span>
+                <div
+                  key={i}
+                  className={`flex items-center justify-between text-sm py-1 px-2 rounded ${
+                    item.completed ? "bg-teal-50" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={item.completed || false}
+                      onChange={() => onToggleProgress(item.semana, item.disciplina, item.completed || false)}
+                      className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                    />
+                    <span className={`${item.completed ? "text-slate-400 line-through" : "text-slate-700"}`}>
+                      {item.disciplina}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {item.modo === "urgencia" && (
+                      <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">Urgente</span>
+                    )}
+                    {item.ajustado && (
+                      <span className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">Ajustado</span>
+                    )}
+                    <span className="text-slate-500">{item.horas}h</span>
+                  </div>
                 </div>
               ))}
             </div>

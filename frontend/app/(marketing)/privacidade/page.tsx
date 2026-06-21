@@ -1,10 +1,6 @@
-import { Navbar } from "@/components/app/landing/navbar";
-import { Footer } from "@/components/app/landing/footer";
-
 export default function PrivacidadePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main className="mx-auto max-w-3xl px-4 pt-28 pb-16 md:pt-36">
         <h1 className="text-3xl font-bold text-foreground md:text-4xl">
           Politica de Privacidade
@@ -90,7 +86,6 @@ export default function PrivacidadePage() {
           </section>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

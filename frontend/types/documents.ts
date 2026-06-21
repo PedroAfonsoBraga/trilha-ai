@@ -49,6 +49,36 @@ export interface CronogramaItem {
   horas: number;
   peso: number;
   num_questoes?: number;
+  completed?: boolean;
+  modo?: string;
+  ajustado?: boolean;
+}
+
+export interface ProgressItem {
+  id: string;
+  user_id: string;
+  document_id: string;
+  semana: number;
+  disciplina: string;
+  horas_estudadas: number;
+  completed: boolean;
+  nota?: string;
+  completed_at?: string;
+}
+
+export interface ProgressSummary {
+  total_items: number;
+  completed_items: number;
+  completion_rate: number;
+  total_horas: number;
+  by_disciplina: Record<string, number>;
+}
+
+export interface NotificationPreferences {
+  user_id: string;
+  prazo_prova: boolean;
+  lembrete_estudo: boolean;
+  resumo_semanal: boolean;
 }
 
 export interface FichamentoData {
@@ -86,4 +116,32 @@ export interface SharedContent {
   export_type: "cronograma" | "fichamento" | "flashcards";
   nome_original: string;
   content: unknown;
+}
+
+export interface ChatMessage {
+  id: string;
+  session_id: string;
+  user_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  tokens_used?: number;
+  chunks_citados?: string[];
+  created_at: string;
+}
+
+export interface ChatSession {
+  id: string;
+  user_id: string;
+  document_ids: string[];
+  titulo?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SearchChunk {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  content: string;
+  similarity: number;
 }

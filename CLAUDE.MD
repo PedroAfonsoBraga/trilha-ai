@@ -36,8 +36,8 @@ private: sk_test_xxxx
 - Pro (R$39,90): tudo ilimitado + Concurso Assistant
 
 ## Sprint atual
-Sprint 1 — Concurso Assistant + PDF (em andamento)
-Ver docs/learnings/session-notes.md para status detalhado.
+Sprint 4 — RAG + Chat (concluído)
+Sprint 5 — Lançamento e Growth (próxima)
 
 ## Como iniciar cada sessão
 Leia docs/learnings/session-notes.md antes de qualquer tarefa.

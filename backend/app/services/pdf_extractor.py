@@ -4,6 +4,7 @@ from typing import Optional
 
 import fitz  # PyMuPDF
 import pytesseract
+from docx import Document as DocxDocument
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,26 @@ def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
 
     doc.close()
     return full_text.strip()
+
+
+def extract_text_from_docx_bytes(docx_bytes: bytes) -> str:
+    doc = DocxDocument(io.BytesIO(docx_bytes))
+    paragraphs = []
+    for para in doc.paragraphs:
+        if para.text.strip():
+            paragraphs.append(para.text)
+    return "\n".join(paragraphs)
+
+
+def extract_text_from_bytes(file_bytes: bytes, content_type: str) -> str:
+    if "pdf" in content_type or (file_bytes[:4] == b"%PDF"):
+        return extract_text_from_pdf_bytes(file_bytes)
+    elif "word" in content_type or "docx" in content_type or (
+        file_bytes[:2] == b"PK" and b"word/" in file_bytes[:500]
+    ):
+        return extract_text_from_docx_bytes(file_bytes)
+    else:
+        raise ValueError(f"Formato de arquivo não suportado: {content_type}")
 
 
 def _ocr_page(page: fitz.Page) -> Optional[str]:

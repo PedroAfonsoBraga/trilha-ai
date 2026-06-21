@@ -13,11 +13,25 @@ DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 DEFAULT_MODEL = "deepseek-v4-flash"
 
 BANCAS = {
-    "cespe": ["cespe", "cebraspe", "cespe/unb"],
+    "cespe": ["cespe", "cebraspe", "cespe/unb", "cebraspe/das"],
     "fcc": ["fcc", "fundação carlos chagas"],
     "vunesp": ["vunesp", "vunesp/", "fundação vunesp"],
     "fgv": ["fgv", "fundação getúlio vargas"],
     "fumarc": ["fumarc"],
+    "ibfc": ["ibfc", "instituto brasileiro de formação e capacitação"],
+    "idecan": ["idecan"],
+    "aocp": ["aocp", "instituto aocp"],
+    "quadrix": ["quadrix"],
+    "consulplan": ["consulplan"],
+    "nucepe": ["nucepe"],
+    "iades": ["iades"],
+    "selecon": ["selecon"],
+    "instituto_ms": ["instituto ms", "ms concursos"],
+    "comperve": ["comperve"],
+    "ibade": ["ibade"],
+    "fundatec": ["fundatec"],
+    "fundep": ["fundep"],
+    "unicentro": ["unicentro"],
 }
 
 
@@ -32,6 +46,7 @@ def detectar_banca(texto: str) -> str:
 
 def extrair_datas(texto: str) -> list[dict]:
     datas = []
+    seen_dates = set()
 
     iso_patterns = [
         (r"\d{2}/\d{2}/\d{4}", "%d/%m/%Y"),
@@ -44,10 +59,12 @@ def extrair_datas(texto: str) -> list[dict]:
         for match in re.finditer(pattern, texto):
             try:
                 d = date.strftime(date.strptime(match.group(), fmt), "%Y-%m-%d")
-                context_start = max(0, match.start() - 80)
-                context_end = min(len(texto), match.end() + 80)
-                context = texto[context_start:context_end].strip()
-                datas.append({"data": d, "contexto": context})
+                if d not in seen_dates:
+                    seen_dates.add(d)
+                    context_start = max(0, match.start() - 80)
+                    context_end = min(len(texto), match.end() + 80)
+                    context = texto[context_start:context_end].strip()
+                    datas.append({"data": d, "contexto": context})
             except ValueError:
                 pass
 
@@ -56,6 +73,12 @@ def extrair_datas(texto: str) -> list[dict]:
         "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
         "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
     }
+    short_months = {
+        "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5,
+        "jun": 6, "jul": 7, "ago": 8, "set": 9, "out": 10,
+        "nov": 11, "dez": 12,
+    }
+
     date_words = (
         r"\d{1,2}\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|"
         r"julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}"
@@ -64,13 +87,74 @@ def extrair_datas(texto: str) -> list[dict]:
         try:
             parts = match.group().lower().split()
             day = int(parts[0])
-            month = months[parts[2]]
+            month_str = parts[2]
+            month = months[month_str]
             year = int(parts[4])
             d = date(year, month, day).isoformat()
-            context_start = max(0, match.start() - 80)
-            context_end = min(len(texto), match.end() + 80)
-            context = texto[context_start:context_end].strip()
-            datas.append({"data": d, "contexto": context})
+            if d not in seen_dates:
+                seen_dates.add(d)
+                context_start = max(0, match.start() - 80)
+                context_end = min(len(texto), match.end() + 80)
+                context = texto[context_start:context_end].strip()
+                datas.append({"data": d, "contexto": context})
+        except (ValueError, IndexError, KeyError):
+            pass
+
+    ordinal_pattern = (
+        r"\d{1,2}[º°]\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|"
+        r"julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}"
+    )
+    for match in re.finditer(ordinal_pattern, texto, re.IGNORECASE):
+        try:
+            parts = re.sub(r"[º°]", "", match.group().lower()).split()
+            day = int(parts[0])
+            month_str = parts[2]
+            month = months[month_str]
+            year = int(parts[4])
+            d = date(year, month, day).isoformat()
+            if d not in seen_dates:
+                seen_dates.add(d)
+                context_start = max(0, match.start() - 80)
+                context_end = min(len(texto), match.end() + 80)
+                context = texto[context_start:context_end].strip()
+                datas.append({"data": d, "contexto": context})
+        except (ValueError, IndexError, KeyError):
+            pass
+
+    range_pattern = (
+        r"(\d{2}/\d{2}/\d{4})\s*(?:a|até|—|–|–|—)\s*(\d{2}/\d{2}/\d{4})"
+    )
+    for match in re.finditer(range_pattern, texto, re.IGNORECASE):
+        try:
+            d_start = date.strftime(date.strptime(match.group(1), "%d/%m/%Y"), "%Y-%m-%d")
+            d_end = date.strftime(date.strptime(match.group(2), "%d/%m/%Y"), "%Y-%m-%d")
+            for d in [d_start, d_end]:
+                if d not in seen_dates:
+                    seen_dates.add(d)
+                    context_start = max(0, match.start() - 80)
+                    context_end = min(len(texto), match.end() + 80)
+                    context = texto[context_start:context_end].strip()
+                    datas.append({"data": d, "contexto": context})
+        except ValueError:
+            pass
+
+    month_year_pattern = (
+        r"(janeiro|fevereiro|março|abril|maio|junho|"
+        r"julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}"
+    )
+    for match in re.finditer(month_year_pattern, texto, re.IGNORECASE):
+        try:
+            parts = match.group().lower().split()
+            month_str = parts[0]
+            month = months[month_str]
+            year = int(parts[2])
+            d = date(year, month, 1).isoformat()
+            if d not in seen_dates:
+                seen_dates.add(d)
+                context_start = max(0, match.start() - 80)
+                context_end = min(len(texto), match.end() + 80)
+                context = texto[context_start:context_end].strip()
+                datas.append({"data": d, "contexto": context})
         except (ValueError, IndexError, KeyError):
             pass
 
@@ -81,18 +165,21 @@ EDITAL_SYSTEM_PROMPT = """Você é um parser de editais de concurso público bra
 
 Analise o texto do edital abaixo e retorne um JSON com a seguinte estrutura:
 {
-  "banca": "cespe|fcc|vunesp|fgv|fumarc|indefinida",
+  "banca": "cespe|fcc|vunesp|fgv|fumarc|ibfc|idecan|aocp|quadrix|consulplan|nucepe|iades|selecon|instituto_ms|comperve|ibade|fundatec|fundep|unicentro|indefinida",
   "cargo": "nome do cargo",
   "orgao": "nome do órgão",
   "datas_importantes": [
-    {"evento": "nome do evento", "data": "YYYY-MM-DD"}
+    {"evento": "nome do evento (inscricao, prova, resultado, etc)", "data": "YYYY-MM-DD"}
   ],
   "disciplinas": [
     {"nome": "nome da disciplina", "peso": 5, "num_questoes": 10}
   ],
   "salario_inicial": "R$ X.XXX,XX (se disponível)",
   "total_vagas": 0,
-  "resumo": "resumo de 2-3 frases sobre o concurso"
+  "resumo": "resumo de 2-3 frases sobre o concurso",
+  "conteudo_programatico": [
+    {"disciplina": "nome", "topicos": ["tópico 1", "tópico 2"]}
+  ]
 }
 
 Regras:
@@ -100,6 +187,7 @@ Regras:
 - Para pesos de disciplinas, se não estiver explícito, atribua peso 2 para específicas e 1 para gerais.
 - Para número de questões, se não estiver explícito, use 10 como padrão.
 - Datas no formato YYYY-MM-DD.
+- conteudo_programatico deve extrair os tópicos de cada disciplina quando disponíveis.
 
 Responda APENAS com o JSON, sem markdown ou texto adicional."""
 

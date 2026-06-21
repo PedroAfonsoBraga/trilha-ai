@@ -1,33 +1,29 @@
-import { Navbar } from "@/components/app/landing/navbar";
-import { HeroSection } from "@/components/app/landing/hero-section";
-import { BancasMarquee } from "@/components/app/landing/bancas-marquee";
-import { ProblemSection } from "@/components/app/landing/problem-section";
-import { HowItWorksSection } from "@/components/app/landing/how-it-works-section";
-import { FeaturesSection } from "@/components/app/landing/features-section";
-import { ComparisonSection } from "@/components/app/landing/comparison-section";
-import { StatsCounter } from "@/components/app/landing/stats-counter";
-import { TestimonialsSection } from "@/components/app/landing/testimonials-section";
-import { PricingSection } from "@/components/app/landing/pricing-section";
-import { FaqSection } from "@/components/app/landing/faq-section";
-import { CtaFinalSection } from "@/components/app/landing/cta-final-section";
-import { Footer } from "@/components/app/landing/footer";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { BancasBar } from "@/components/landing/BancasBar";
+import { PainSection } from "@/components/landing/PainSection";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { ComparisonSection } from "@/components/landing/ComparisonSection";
+import { CounterSection } from "@/components/landing/CounterSection";
+import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { PricingSection } from "@/components/landing/PricingSection";
+import { FAQSection } from "@/components/landing/FAQSection";
+import { CTASection } from "@/components/landing/CTASection";
 
 export default function MarketingPage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <HeroSection />
-      <BancasMarquee />
-      <ProblemSection />
+      <BancasBar />
+      <PainSection />
       <HowItWorksSection />
       <FeaturesSection />
       <ComparisonSection />
-      <StatsCounter />
+      <CounterSection />
       <TestimonialsSection />
       <PricingSection />
-      <FaqSection />
-      <CtaFinalSection />
-      <Footer />
+      <FAQSection />
+      <CTASection />
     </div>
   );
 }
