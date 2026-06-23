@@ -85,13 +85,13 @@ async def stripe_webhook(request: Request):
             supabase.table("subscriptions")
             .select("user_id")
             .eq("stripe_subscription_id", stripe_subscription_id)
-            .single()
+            .limit(1)
             .execute()
         )
         if result.data:
             supabase.table("profiles").update({
                 "plano": plan,
-            }).eq("id", result.data["user_id"]).execute()
+            }).eq("id", result.data[0]["user_id"]).execute()
 
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
@@ -101,7 +101,7 @@ async def stripe_webhook(request: Request):
             supabase.table("subscriptions")
             .select("user_id")
             .eq("stripe_subscription_id", stripe_subscription_id)
-            .single()
+            .limit(1)
             .execute()
         )
 
@@ -113,6 +113,6 @@ async def stripe_webhook(request: Request):
         if result.data:
             supabase.table("profiles").update({
                 "plano": "free",
-            }).eq("id", result.data["user_id"]).execute()
+            }).eq("id", result.data[0]["user_id"]).execute()
 
     return {"received": True}

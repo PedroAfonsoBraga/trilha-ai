@@ -4,7 +4,10 @@ import os
 import re
 from datetime import date, timedelta
 
+from dotenv import load_dotenv
 import httpx
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

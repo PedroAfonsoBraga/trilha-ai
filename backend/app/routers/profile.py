@@ -1,11 +1,13 @@
 import logging
 import os
+from datetime import datetime
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.middleware.auth import get_current_user
+from app.services.rate_limiter import get_user_plan
 
 load_dotenv()
 
@@ -71,3 +73,84 @@ async def update_profile(payload: ProfileUpdate, user: dict = Depends(get_curren
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
 
     return result.data[0]
+
+
+FREE_LIMITS = {
+    "edital": 3,
+    "pdf": 3,
+    "flashcard": 5,
+    "fichamento": 3,
+    "tcc": 1,
+}
+
+
+@router.get("/usage")
+async def get_usage(user: dict = Depends(get_current_user)):
+    supabase = get_admin_supabase()
+    mes_ano = datetime.now().strftime("%Y-%m")
+    plan = get_user_plan(user["id"])
+
+    result = (
+        supabase.table("usage_tracking")
+        .select("feature, quantidade")
+        .eq("user_id", user["id"])
+        .eq("mes_ano", mes_ano)
+        .execute()
+    )
+
+    usage = {}
+    for row in (result.data or []):
+        feature = row["feature"]
+        limite = None if plan in ("estudante", "pro") else FREE_LIMITS.get(feature)
+        usage[feature] = {
+            "usado": row["quantidade"],
+            "limite": limite,
+        }
+
+    for feat, default_limit in FREE_LIMITS.items():
+        if feat not in usage:
+            limite = None if plan in ("estudante", "pro") else default_limit
+            usage[feat] = {"usado": 0, "limite": limite}
+
+    return {"mes_ano": mes_ano, "plano": plan, "features": usage}
+
+
+@router.get("/subscription")
+async def get_subscription(user: dict = Depends(get_current_user)):
+    supabase = get_admin_supabase()
+
+    result = (
+        supabase.table("subscriptions")
+        .select("plan, status, current_period_end, stripe_customer_id")
+        .eq("user_id", user["id"])
+        .execute()
+    )
+
+    active_sub = None
+    for s in (result.data or []):
+        if s.get("status") in ("active", "trialing"):
+            active_sub = s
+            break
+
+    if not active_sub:
+        profile_result = (
+            supabase.table("profiles")
+            .select("plano")
+            .eq("id", user["id"])
+            .limit(1)
+            .execute()
+        )
+        plan = profile_result.data[0].get("plano", "free") if profile_result.data else "free"
+        return {
+            "plan": plan,
+            "status": "free",
+            "current_period_end": None,
+            "has_portal": False,
+        }
+
+    return {
+        "plan": active_sub.get("plan", "free"),
+        "status": active_sub.get("status", "free"),
+        "current_period_end": active_sub.get("current_period_end"),
+        "has_portal": bool(active_sub.get("stripe_customer_id")),
+    }

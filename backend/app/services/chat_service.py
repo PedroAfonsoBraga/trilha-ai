@@ -5,9 +5,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+from dotenv import load_dotenv
 import httpx
 
 from app.services.search_service import search_similar_chunks, rerank_chunks
+from app.services import chunking_service, embedding_service
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,63 @@ def _build_context(chunks: List[Dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
+async def _ensure_documents_chunked(
+    supabase, document_ids: List[str], user_id: str
+) -> int:
+    chunks_created = 0
+
+    for doc_id in document_ids:
+        existing = (
+            supabase.table("document_chunks")
+            .select("id", count="exact")
+            .eq("document_id", doc_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if existing.count and existing.count > 0:
+            continue
+
+        doc = (
+            supabase.table("documents")
+            .select("id, texto_extraido")
+            .eq("id", doc_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if not doc.data:
+            continue
+
+        texto = doc.data[0].get("texto_extraido")
+        if not texto:
+            continue
+
+        chunks = chunking_service.chunk_semantico(texto)
+        if not chunks:
+            continue
+
+        texts = [c.content for c in chunks]
+        try:
+            embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document")
+        except Exception as e:
+            logger.error(f"Falha ao gerar embeddings para doc {doc_id}: {e}")
+            continue
+
+        for i, chunk in enumerate(chunks):
+            if i < len(embeddings):
+                supabase.table("document_chunks").insert({
+                    "document_id": doc_id,
+                    "user_id": user_id,
+                    "chunk_index": chunk.index,
+                    "content": chunk.content,
+                    "token_count": chunk.token_count,
+                    "embedding": embeddings[i],
+                }).execute()
+                chunks_created += 1
+
+    return chunks_created
+
+
 async def chat_stream_response(
     messages: List[Dict[str, str]],
     document_ids: List[str],
@@ -75,6 +136,8 @@ async def chat_stream_response(
             raise ValueError("Sessão não encontrada")
 
     user_msg = messages[-1]["content"]
+
+    await _ensure_documents_chunked(supabase, document_ids, user_id)
 
     chunks_raw = await search_similar_chunks(
         query=user_msg,

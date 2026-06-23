@@ -6,3 +6,5 @@ from . import fichamento_service
 from . import flashcard_service
 from . import anki_service
 from . import rate_limiter
+from . import review_service
+from . import tcc_service

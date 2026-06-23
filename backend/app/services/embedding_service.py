@@ -4,7 +4,10 @@ import os
 import re
 from typing import Dict, List
 
+from dotenv import load_dotenv
 import httpx
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

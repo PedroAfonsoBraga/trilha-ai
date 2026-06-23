@@ -3,9 +3,12 @@ import logging
 import os
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
 import httpx
 
 from app.services.embedding_service import gerar_embedding
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

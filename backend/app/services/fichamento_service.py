@@ -4,10 +4,13 @@ import logging
 import os
 import re
 
+from dotenv import load_dotenv
 import httpx
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
