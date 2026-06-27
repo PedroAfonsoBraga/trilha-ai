@@ -1,9 +1,10 @@
+import asyncio
 import logging
 import os
 import uuid
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
 
 from app.middleware.auth import get_current_user
@@ -47,13 +48,14 @@ def _fetch_text(doc_id: str, user_id: str) -> str:
 
 
 def _update_metadata(doc_id: str, key: str, value: dict, user_id: str):
+    """Atualiza um campo no metadata do documento. A ownership é verificada via user_id."""
     doc = _fetch_doc(doc_id, user_id, select="metadata")
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     metadata = doc.get("metadata") or {}
     metadata[key] = value
     supabase = _get_supabase()
-    supabase.table("documents").update({"metadata": metadata}).eq("id", doc_id).execute()
+    supabase.table("documents").update({"metadata": metadata}).eq("id", doc_id).eq("user_id", user_id).execute()
 
 
 @router.post("/upload")
@@ -69,22 +71,18 @@ async def upload_tcc(
     if content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Apenas arquivos PDF e DOCX são aceitos")
 
+    file_bytes = await file.read()
+    if len(file_bytes) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Arquivo excede o limite de 50MB")
+
     plan = rate_limiter.get_user_plan(user["id"])
     max_limit = 1 if plan == "free" else (3 if plan == "estudante" else None)
     if not rate_limiter.check_rate_limit(user["id"], "tcc", max_free=max_limit or 1):
         raise HTTPException(status_code=429, detail="Limite de uploads de TCC atingido para seu plano")
 
-    file_bytes = await file.read()
     doc_id = str(uuid.uuid4())
     ext = "pdf" if "pdf" in content_type else "docx"
     storage_path = f"{user['id']}/{doc_id}.{ext}"
-
-    supabase = _get_supabase()
-    supabase.storage.from_("documents").upload(
-        path=storage_path,
-        file=file_bytes,
-        file_options={"content-type": content_type, "upsert": "false"},
-    )
 
     texto_extraido = None
     try:
@@ -97,7 +95,10 @@ async def upload_tcc(
         "tamanho_bytes": len(file_bytes),
     }
 
-    supabase.table("documents").insert({
+    supabase = _get_supabase()
+
+    # INSERT no banco ANTES do Storage — se falhar, não há arquivo órfão
+    insert_result = supabase.table("documents").insert({
         "id": doc_id,
         "user_id": user["id"],
         "tipo": "tcc",
@@ -106,6 +107,19 @@ async def upload_tcc(
         "texto_extraido": texto_extraido,
         "metadata": metadata,
     }).execute()
+    if not insert_result.data:
+        raise HTTPException(status_code=500, detail="Falha ao salvar documento no banco")
+
+    try:
+        supabase.storage.from_("documents").upload(
+            path=storage_path,
+            file=file_bytes,
+            file_options={"content-type": content_type, "upsert": "false"},
+        )
+    except Exception as e:
+        logger.error(f"Falha ao fazer upload para Storage: {e}. Removendo registro do banco...")
+        supabase.table("documents").delete().eq("id", doc_id).execute()
+        raise HTTPException(status_code=500, detail="Falha ao armazenar arquivo")
 
     rate_limiter.increment_usage(user["id"], "tcc")
 
@@ -117,27 +131,42 @@ async def upload_tcc(
     }
 
 
+def _check_analysis_rate_limit(user_id: str):
+    """Rate limit para análises de TCC. Free: 3 análises/mês, Estudante/Pro: ilimitado."""
+    if not rate_limiter.check_rate_limit(user_id, "tcc_analysis", max_free=3):
+        raise HTTPException(
+            status_code=429,
+            detail="Limite de análises de TCC atingido para seu plano. Faça upgrade para continuar.",
+        )
+
+
 @router.post("/{doc_id}/analyze")
 async def analyze_tcc_structure(doc_id: str, user: dict = Depends(get_current_user)):
+    _check_analysis_rate_limit(user["id"])
     texto = _fetch_text(doc_id, user["id"])
     result = await tcc_service.analyze_structure(texto)
     _update_metadata(doc_id, "analise_estrutura", result, user["id"])
+    rate_limiter.increment_usage(user["id"], "tcc_analysis")
     return result
 
 
 @router.post("/{doc_id}/review")
 async def review_tcc_text(doc_id: str, user: dict = Depends(get_current_user)):
+    _check_analysis_rate_limit(user["id"])
     texto = _fetch_text(doc_id, user["id"])
     result = await tcc_service.review_text(texto)
     _update_metadata(doc_id, "revisao_qualidade", result, user["id"])
+    rate_limiter.increment_usage(user["id"], "tcc_analysis")
     return result
 
 
 @router.post("/{doc_id}/references")
 async def check_tcc_references(doc_id: str, user: dict = Depends(get_current_user)):
+    _check_analysis_rate_limit(user["id"])
     texto = _fetch_text(doc_id, user["id"])
     result = await tcc_service.extract_references(texto)
     _update_metadata(doc_id, "referencias_abnt", result, user["id"])
+    rate_limiter.increment_usage(user["id"], "tcc_analysis")
     return result
 
 
@@ -163,7 +192,13 @@ async def download_tcc_report(doc_id: str, user: dict = Depends(get_current_user
             detail=f"Execute todas as análises primeiro: {', '.join(missing)}",
         )
     plano = rate_limiter.get_user_plan(user["id"])
-    docx_bytes = tcc_service.create_combined_report(estrutura, revisao, referencias, plano=plano)
+    docx_bytes = await asyncio.to_thread(
+        tcc_service.create_combined_report,
+        estrutura,
+        revisao,
+        referencias,
+        plano=plano,
+    )
     return Response(
         content=docx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

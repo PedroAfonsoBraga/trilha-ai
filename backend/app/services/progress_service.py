@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from dotenv import load_dotenv

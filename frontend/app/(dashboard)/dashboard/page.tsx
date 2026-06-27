@@ -84,6 +84,15 @@ export default async function DashboardPage() {
             </p>
           </a>
           <a
+            href="/dashboard/flashcards"
+            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">Revisão Espaçada</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Revise flashcards com o método SM-2, acompanhe seu desempenho e fixe o conteúdo.
+            </p>
+          </a>
+          <a
             href="/dashboard/tcc"
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
           >

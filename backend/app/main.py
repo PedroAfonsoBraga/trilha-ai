@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from app.routers import billing, documents, sharing, profile, notifications, chat, library, tcc
+from app.routers import billing, documents, sharing, profile, notifications, chat, library, tcc, flashcards
 
 
 @asynccontextmanager
@@ -37,6 +37,7 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["not
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(library.router, prefix="/api/library", tags=["library"])
 app.include_router(tcc.router, prefix="/api/tcc", tags=["tcc"])
+app.include_router(flashcards.router, prefix="/api/flashcards", tags=["flashcards"])
 
 
 @app.get("/api/health")

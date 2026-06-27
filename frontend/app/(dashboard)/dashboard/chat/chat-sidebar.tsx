@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ChatSession } from "@/types/documents";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface Profile {
   id: string;
@@ -72,6 +83,11 @@ export default function ChatSidebar({ accessToken, apiUrl, sidebarOpen, onClose 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -116,14 +132,94 @@ export default function ChatSidebar({ accessToken, apiUrl, sidebarOpen, onClose 
     };
   }, [fetchData, subscription?.plan]);
 
+  useEffect(() => {
+    if (!editingId) return;
+    editInputRef.current?.focus();
+    editInputRef.current?.select();
+  }, [editingId]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handler = () => setOpenMenuId(null);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [openMenuId]);
+
   const handleNewChat = () => {
     onClose();
     router.push("/dashboard/chat");
   };
 
   const handleSessionClick = (sessionId: string) => {
+    if (editingId) return;
     onClose();
     router.push(`/dashboard/chat?s=${sessionId}`);
+  };
+
+  const handleRenameStart = (s: ChatSession) => {
+    setEditingId(s.id);
+    setEditingValue(s.titulo || "");
+    setOpenMenuId(null);
+  };
+
+  const handleRenameCancel = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const handleRenameSave = async (sessionId: string) => {
+    const newTitle = editingValue.trim();
+    if (!newTitle || newTitle === sessions.find((s) => s.id === sessionId)?.titulo) {
+      handleRenameCancel();
+      return;
+    }
+    try {
+      await fetch(`${apiUrl}/api/chat/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ titulo: newTitle }),
+      });
+      handleRenameCancel();
+      fetchData();
+    } catch {
+      handleRenameCancel();
+    }
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent, sessionId: string) => {
+    if (e.key === "Enter") handleRenameSave(sessionId);
+    if (e.key === "Escape") handleRenameCancel();
+  };
+
+  const handleDeleteClick = (sessionId: string) => {
+    setOpenMenuId(null);
+    setDeletingId(sessionId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingId) return;
+    const id = deletingId;
+    setDeletingId(null);
+    try {
+      await fetch(`${apiUrl}/api/chat/sessions/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      fetchData();
+      if (id === currentSessionId) {
+        router.push("/dashboard/chat");
+      }
+    } catch {
+      // fallback
+    }
+  };
+
+  const toggleMenu = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    setOpenMenuId(openMenuId === sessionId ? null : sessionId);
   };
 
   const grouped = groupSessions(sessions);
@@ -190,17 +286,71 @@ export default function ChatSidebar({ accessToken, apiUrl, sidebarOpen, onClose 
                 </p>
                 <div className="space-y-0.5">
                   {group.sessions.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => handleSessionClick(s.id)}
-                      className={`w-full truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                        s.id === currentSessionId
-                          ? "bg-teal-100 text-teal-900 font-medium"
-                          : "text-slate-700 hover:bg-slate-200"
-                      }`}
-                    >
-                      {s.titulo || "Nova conversa"}
-                    </button>
+                    <div key={s.id} className="group relative">
+                      {editingId === s.id ? (
+                        <input
+                          ref={editInputRef}
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          onKeyDown={(e) => handleRenameKeyDown(e, s.id)}
+                          onBlur={() => handleRenameSave(s.id)}
+                          className="w-full rounded-md border border-teal-500 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => handleSessionClick(s.id)}
+                          className={`w-full truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                            s.id === currentSessionId
+                              ? "bg-teal-100 text-teal-900 font-medium"
+                              : "text-slate-700 hover:bg-slate-200"
+                          }`}
+                        >
+                          <span className="block truncate pr-5">
+                            {s.titulo || "Nova conversa"}
+                          </span>
+                        </button>
+                      )}
+
+                      {editingId !== s.id && (
+                        <button
+                          onClick={(e) => toggleMenu(e, s.id)}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-slate-300 group-hover:opacity-100"
+                          aria-label="Opções"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 16 16">
+                            <circle cx="8" cy="3" r="1.5" />
+                            <circle cx="8" cy="8" r="1.5" />
+                            <circle cx="8" cy="13" r="1.5" />
+                          </svg>
+                        </button>
+                      )}
+
+                      {openMenuId === s.id && (
+                        <div
+                          className="absolute right-1 top-full z-50 mt-0.5 w-36 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => handleRenameStart(s)}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            Renomear
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(s.id)}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -232,6 +382,24 @@ export default function ChatSidebar({ accessToken, apiUrl, sidebarOpen, onClose 
           </div>
         </div>
       </aside>
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conversa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta conversa?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

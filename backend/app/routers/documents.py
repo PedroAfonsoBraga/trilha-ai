@@ -1,10 +1,10 @@
 import logging
 import os
 import uuid
-from typing import Dict, List
+from typing import List
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
 from app.middleware.auth import get_current_user

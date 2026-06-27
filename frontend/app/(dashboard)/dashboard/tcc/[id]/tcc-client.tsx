@@ -164,6 +164,8 @@ export default function TccClient({ docId, accessToken, initialAnalysis, initial
   const [downloading, setDownloading] = useState(false);
 
   const callAnalysis = useCallback(async (endpoint: string, stateKey: string) => {
+    // Previne clique duplicado enquanto uma análise do mesmo tipo está rodando
+    if (loading === stateKey) return;
     setLoading(stateKey);
     setError(null);
     try {
@@ -176,15 +178,18 @@ export default function TccClient({ docId, accessToken, initialAnalysis, initial
         throw new Error(data.detail || "Erro na análise");
       }
       const data = await res.json();
-      if (stateKey === "analyze") setAnalysis(data);
-      else if (stateKey === "review") setReview(data);
-      else if (stateKey === "references") setReferences(data);
+      const setters: Record<string, (v: any) => void> = {
+        analyze: setAnalysis,
+        review: setReview,
+        references: setReferences,
+      };
+      setters[stateKey]?.(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
       setLoading(null);
     }
-  }, [docId, accessToken]);
+  }, [docId, accessToken, loading]);
 
   const downloadReport = useCallback(async () => {
     setDownloading(true);
@@ -436,10 +441,10 @@ export default function TccClient({ docId, accessToken, initialAnalysis, initial
             Tire dúvidas específicas sobre o conteúdo do seu TCC com a IA contextual.
           </p>
           <a
-            href={`/dashboard/chat`}
+            href={`/dashboard/chat?doc_id=${docId}`}
             className="inline-block rounded-lg bg-teal-600 px-4 py-2 text-sm text-white hover:bg-teal-700 transition-colors"
           >
-            Abrir Chat
+            Abrir Chat com este TCC
           </a>
         </div>
       </div>

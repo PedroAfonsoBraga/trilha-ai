@@ -1,18 +1,12 @@
 import json
 import logging
-import os
 import re
 
 from dotenv import load_dotenv
-import httpx
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
 
 FLASHCARD_SYSTEM = """Você é um especialista em criação de flashcards educacionais para o sistema Anki (revisão espaçada).
 
@@ -72,36 +66,16 @@ def _try_parse_flashcards(content: str) -> list[dict]:
 
 
 async def gerar_flashcards_ia(texto: str, max_cards: int = 20) -> list[dict]:
-    if not DEEPSEEK_API_KEY:
-        raise ValueError("DEEPSEEK_API_KEY não configurada")
+    from app.services.llm_client import generate_text
 
     input_text = texto[:120000]
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        response = await client.post(
-            DEEPSEEK_URL,
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEFAULT_MODEL,
-                "messages": [
-                    {"role": "system", "content": FLASHCARD_SYSTEM},
-                    {"role": "user", "content": f"Texto para criação de flashcards:\n\n{input_text}"},
-                ],
-                "max_tokens": 8192,
-                "temperature": 0.5,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-
-    content = data["choices"][0]["message"]["content"]
-    finish_reason = data["choices"][0].get("finish_reason", "")
-
-    if finish_reason == "length":
-        logger.warning("DeepSeek flashcard response truncated by token limit")
+    content = await generate_text(
+        system_prompt=FLASHCARD_SYSTEM,
+        user_text=f"Texto para criação de flashcards:\n\n{input_text}",
+        max_tokens=8192,
+        temperature=0.5,
+    )
 
     flashcards = _try_parse_flashcards(content)
 

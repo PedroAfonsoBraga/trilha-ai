@@ -19,7 +19,7 @@ interface Document {
 export default async function ChatPage({
   searchParams,
 }: {
-  searchParams: { s?: string };
+  searchParams: { s?: string; doc_id?: string };
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -46,6 +46,8 @@ export default async function ChatPage({
   } catch {
     // fallback
   }
+
+  const docIdFromParams = searchParams.doc_id || null;
 
   if (sessionId) {
     try {
@@ -80,6 +82,9 @@ export default async function ChatPage({
     } catch {
       // fallback
     }
+  } else if (docIdFromParams) {
+    // Pré-seleciona o documento vindo do TCC Assistant
+    initialSelectedDocs = [docIdFromParams];
   }
 
   return (

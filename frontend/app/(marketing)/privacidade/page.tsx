@@ -45,9 +45,10 @@ export default function PrivacidadePage() {
               4. IA e Processamento de Terceiros
             </h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Utilizamos a API do DeepSeek para processamento de linguagem
-              natural dos seus editais. Os dados enviados para a API sao apenas
-              o texto extraido do PDF, sem informacoes pessoais.
+              Utilizamos a API do Google Gemini (Interactions API) para
+              processamento de linguagem natural dos seus editais. Os dados
+              enviados para a API sao apenas o texto extraido do PDF, sem
+              informacoes pessoais.
             </p>
           </section>
 

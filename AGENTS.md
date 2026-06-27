@@ -30,7 +30,7 @@ cd backend && uv run python -c "from app.main import app"
 - **NÃO há conexão direta ao PostgreSQL** — firewall do Supabase bloqueia. Toda migration roda no SQL Editor do Dashboard.
 - Backend comunica com Supabase via `service_role_key` usando a lib `supabase` (client HTTP).
 - Frontend comunica com backend via `/api/*` usando `fetch` + `accessToken` no header `Authorization: Bearer`.
-- IA: DeepSeek V4 Flash via httpx (API OpenAI-compatible, NÃO usar openai SDK).
+- IA: Gemini 3.1 Flash-Lite (Interactions API) via google-genai SDK.
 - Embeddings: Voyage-3-lite, **1024 dimensões** (não 512).
 
 ## Padrões que quebram em produção
@@ -41,8 +41,8 @@ Usar `query.limit(1).execute()` + check manual de `result.data`. `.single()` lan
 ### `load_dotenv()` obrigatório em TODO arquivo que lê env vars
 Colocar no topo do módulo, antes de `os.getenv()`. Esquecer isso causa `SUPABASE_URL` vazio silenciosamente.
 
-### JSON recovery do DeepSeek
-DeepSeek V4 Flash trunca respostas longas. Sempre fazer recovery fechando `}`/`]` desbalanceados antes de `json.loads()`.
+### JSON recovery da IA
+Modelos podem truncar respostas longas. Sempre fazer recovery fechando `}`/`]` desbalanceados antes de `json.loads()`.
 
 ### Rate limiter — verificar subscriptions, não profiles
 `get_user_plan()` em `rate_limiter.py` deve consultar a tabela `subscriptions` (status `active`/`trialing`) primeiro. `profiles.plano` pode estar desatualizado se o webhook do Stripe falhou.

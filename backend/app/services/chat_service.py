@@ -1,15 +1,15 @@
+import asyncio
 import json
 import logging
 import os
-import uuid
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 from dotenv import load_dotenv
-import httpx
 
 from app.services.search_service import search_similar_chunks, rerank_chunks
 from app.services import chunking_service, embedding_service
+from app.services.llm_client import _get_client
 
 load_dotenv()
 
@@ -17,17 +17,37 @@ logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
 
-RAG_SYSTEM_PROMPT = """Você é o Concurso Assistant do Trilha, um assistente especializado em concursos públicos brasileiros.
+RAG_SYSTEM_PROMPT_CONCURSO = """Você é o Concurso Assistant do Trilha, um assistente especializado em concursos públicos brasileiros.
 Use APENAS o contexto fornecido abaixo (trechos de documentos do usuário) para responder.
 Se a informação não estiver no contexto, diga "Não encontrei essa informação nos seus documentos."
 NÃO invente informações. Seja conciso e direto.
 
 Contexto dos documentos:
 {contexto}"""
+
+RAG_SYSTEM_PROMPT_TCC = """Você é o TCC Assistant do Trilha, um assistente acadêmico especializado em trabalhos de conclusão de curso.
+Use APENAS o contexto fornecido abaixo (trechos de documentos do usuário) para responder.
+Se a informação não estiver no contexto, diga "Não encontrei essa informação nos seus documentos."
+NÃO invente informações. Seja conciso e direto.
+NUNCA escreva ou reescreva trechos do TCC do aluno — apenas oriente, sugira melhorias e aponte problemas.
+
+Contexto dos documentos:
+{contexto}"""
+
+RAG_SYSTEM_PROMPT_GENERICO = """Você é o Assistente do Trilha, um assistente de estudos especializado em analisar documentos acadêmicos e de concurso.
+Use APENAS o contexto fornecido abaixo (trechos de documentos do usuário) para responder.
+Se a informação não estiver no contexto, diga "Não encontrei essa informação nos seus documentos."
+NÃO invente informações. Seja conciso e direto.
+
+Contexto dos documentos:
+{contexto}"""
+
+
+# Cache de tipos de documento por sessão — evita query repetida a cada turno
+# Formato: {session_id: ["tcc", "edital", ...]}
+_doc_types_cache: Dict[str, List[str]] = {}
+_DOC_TYPES_CACHE_MAX = 1000
 
 
 def _get_supabase():
@@ -104,6 +124,59 @@ async def _ensure_documents_chunked(
     return chunks_created
 
 
+async def _detect_document_types(
+    document_ids: List[str],
+    user_id: str,
+    session_id: Optional[str] = None,
+) -> List[str]:
+    """
+    Retorna os tipos únicos dos documentos selecionados para o chat.
+    Usa cache em memória por session_id para evitar query repetida a cada turno.
+    """
+    if not document_ids:
+        return []
+
+    if session_id and session_id in _doc_types_cache:
+        return _doc_types_cache[session_id]
+
+    supabase = _get_supabase()
+    try:
+        result = (
+            supabase.table("documents")
+            .select("tipo")
+            .in_("id", document_ids)
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Falha ao detectar tipos de documentos: {e}")
+        return []
+
+    tipos = {doc.get("tipo", "pdf_generico") for doc in (result.data or []) if doc.get("tipo")}
+    tipos_list = list(tipos)
+
+    if session_id and len(_doc_types_cache) < _DOC_TYPES_CACHE_MAX:
+        _doc_types_cache[session_id] = tipos_list
+
+    return tipos_list
+
+
+def _select_system_prompt(document_types: List[str]) -> str:
+    """
+    Seleciona o system prompt adequado com base nos tipos de documento.
+
+    Prioridades:
+    1. TCC — usa prompt acadêmico com orientação ética (nunca reescrever)
+    2. Edital — usa prompt de concurso público
+    3. Genérico — fallback para outros tipos de documento
+    """
+    if "tcc" in document_types:
+        return RAG_SYSTEM_PROMPT_TCC
+    if "edital" in document_types:
+        return RAG_SYSTEM_PROMPT_CONCURSO
+    return RAG_SYSTEM_PROMPT_GENERICO
+
+
 async def chat_stream_response(
     messages: List[Dict[str, str]],
     document_ids: List[str],
@@ -113,24 +186,30 @@ async def chat_stream_response(
     supabase = _get_supabase()
 
     if not session_id:
-        result = (
-            supabase.table("chat_sessions")
-            .insert({
-                "user_id": user_id,
-                "document_ids": document_ids,
-                "titulo": messages[0]["content"][:80] if messages else "Nova conversa",
-            })
-            .execute()
+        result = await asyncio.to_thread(
+            lambda: (
+                supabase.table("chat_sessions")
+                .insert({
+                    "user_id": user_id,
+                    "document_ids": document_ids,
+                    "titulo": messages[0]["content"][:80] if messages else "Nova conversa",
+                })
+                .execute()
+            )
         )
+        if not result.data:
+            raise ValueError("Falha ao criar sessão de chat")
         session_id = result.data[0]["id"]
     else:
-        result = (
-            supabase.table("chat_sessions")
-            .select("*")
-            .eq("id", session_id)
-            .eq("user_id", user_id)
-            .limit(1)
-            .execute()
+        result = await asyncio.to_thread(
+            lambda: (
+                supabase.table("chat_sessions")
+                .select("*")
+                .eq("id", session_id)
+                .eq("user_id", user_id)
+                .limit(1)
+                .execute()
+            )
         )
         if not result.data:
             raise ValueError("Sessão não encontrada")
@@ -139,78 +218,91 @@ async def chat_stream_response(
 
     await _ensure_documents_chunked(supabase, document_ids, user_id)
 
-    chunks_raw = await search_similar_chunks(
-        query=user_msg,
-        document_ids=document_ids,
-        user_id=user_id,
-        top_k=10,
-    )
+    chunks_raw = []
+    try:
+        chunks_raw = await search_similar_chunks(
+            query=user_msg,
+            document_ids=document_ids,
+            user_id=user_id,
+            top_k=10,
+        )
+    except Exception as e:
+        logger.warning(f"Search similar chunks failed: {e}")
 
-    chunks_reranked = await rerank_chunks(query=user_msg, chunks=chunks_raw, top_k=5)
+    chunks_reranked = []
+    if chunks_raw:
+        try:
+            chunks_reranked = await rerank_chunks(query=user_msg, chunks=chunks_raw, top_k=5)
+        except Exception as e:
+            logger.warning(f"Rerank failed: {e}")
 
     contexto = _build_context(chunks_reranked)
-    system_content = RAG_SYSTEM_PROMPT.format(contexto=contexto)
 
-    full_messages = [
-        {"role": "system", "content": system_content},
-    ] + messages
+    doc_types = await _detect_document_types(document_ids, user_id, session_id=session_id)
+    system_prompt_template = _select_system_prompt(doc_types)
+    system_content = system_prompt_template.format(contexto=contexto)
 
-    supabase.table("chat_messages").insert({
-        "session_id": session_id,
-        "user_id": user_id,
-        "role": "user",
-        "content": user_msg,
-        "chunks_citados": [c["id"] for c in chunks_reranked],
-    }).execute()
+    await asyncio.to_thread(
+        lambda: (
+            supabase.table("chat_messages")
+            .insert({
+                "session_id": session_id,
+                "user_id": user_id,
+                "role": "user",
+                "content": user_msg,
+                "chunks_citados": [c["id"] for c in chunks_reranked],
+            })
+            .execute()
+        )
+    )
 
     yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
 
     full_response = ""
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        async with client.stream(
-            "POST",
-            DEEPSEEK_URL,
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEFAULT_MODEL,
-                "messages": full_messages,
-                "max_tokens": 8192,
-                "temperature": 0.5,
-                "stream": True,
-            },
-        ) as response:
-            response.raise_for_status()
-            async for line in response.aiter_lines():
-                if not line or not line.startswith("data: "):
-                    continue
-                data_str = line[6:]
-                if data_str == "[DONE]":
-                    break
-                try:
-                    chunk_data = json.loads(data_str)
-                    delta = chunk_data.get("choices", [{}])[0].get("delta", {})
-                    content = delta.get("content", "")
-                    if content:
-                        full_response += content
-                        yield f"data: {json.dumps({'type': 'chunk', 'content': content})}\n\n"
-                except json.JSONDecodeError:
-                    continue
+    client = _get_client().aio
+    stream = await client.interactions.create(
+        model="gemini-3.1-flash-lite",
+        input=user_msg,
+        system_instruction=system_content,
+        generation_config={
+            "max_output_tokens": 8192,
+            "temperature": 0.5,
+        },
+        stream=True,
+        store=True,
+    )
+    async for event in stream:
+        if event.event_type == "step.delta" and event.delta.type == "text":
+            content = event.delta.text
+            if content:
+                full_response += content
+                yield f"data: {json.dumps({'type': 'chunk', 'content': content})}\n\n"
 
-    supabase.table("chat_messages").insert({
-        "session_id": session_id,
-        "user_id": user_id,
-        "role": "assistant",
-        "content": full_response,
-        "tokens_used": len(full_response.split()),
-        "chunks_citados": [c["id"] for c in chunks_reranked],
-    }).execute()
+    await asyncio.to_thread(
+        lambda: (
+            supabase.table("chat_messages")
+            .insert({
+                "session_id": session_id,
+                "user_id": user_id,
+                "role": "assistant",
+                "content": full_response,
+                "tokens_used": len(full_response.split()),
+                "chunks_citados": [c["id"] for c in chunks_reranked],
+            })
+            .execute()
+        )
+    )
 
-    supabase.table("chat_sessions").update({
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", session_id).execute()
+    await asyncio.to_thread(
+        lambda: (
+            supabase.table("chat_sessions")
+            .update({
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+            .eq("id", session_id)
+            .execute()
+        )
+    )
 
     yield "data: [DONE]\n\n"
 
@@ -225,6 +317,33 @@ def get_sessions(user_id: str) -> List[Dict]:
         .execute()
     )
     return result.data or []
+
+
+def update_session_title(session_id: str, user_id: str, titulo: str) -> None:
+    supabase = _get_supabase()
+    result = (
+        supabase.table("chat_sessions")
+        .update({"titulo": titulo, "updated_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", session_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not result.data:
+        raise ValueError("Sessão não encontrada")
+
+
+def delete_session(session_id: str, user_id: str) -> None:
+    supabase = _get_supabase()
+    supabase.table("chat_messages").delete().eq("session_id", session_id).eq("user_id", user_id).execute()
+    result = (
+        supabase.table("chat_sessions")
+        .delete()
+        .eq("id", session_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not result.data:
+        raise ValueError("Sessão não encontrada")
 
 
 def get_session_messages(session_id: str, user_id: str) -> List[Dict]:

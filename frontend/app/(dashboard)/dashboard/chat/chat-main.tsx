@@ -25,6 +25,12 @@ interface Props {
   initialSelectedDocs?: string[];
 }
 
+function getDocIcon(tipo: string): string {
+  if (tipo === "edital") return "📋";
+  if (tipo === "tcc") return "🎓";
+  return "📄";
+}
+
 export default function ChatMain({
   accessToken,
   apiUrl,
@@ -212,7 +218,7 @@ export default function ChatMain({
                 {selectedDocs.includes(doc.id) && (
                   <span className="text-teal-500">&#x2713;</span>
                 )}
-                {doc.tipo === "edital" ? "📋" : "📄"}{" "}
+                {getDocIcon(doc.tipo)}{" "}
                 {doc.nome_original.length > 24
                   ? doc.nome_original.slice(0, 24) + "..."
                   : doc.nome_original}

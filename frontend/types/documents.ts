@@ -182,6 +182,51 @@ export interface SearchResponse {
   total: number;
 }
 
+export interface FlashcardReview {
+  id: string;
+  user_id: string;
+  flashcard_id: string;
+  quality: number;
+  easiness_factor_before: number;
+  easiness_factor_after: number;
+  interval_days_before: number;
+  interval_days_after: number;
+  repetitions_before: number;
+  repetitions_after: number;
+  reviewed_at: string;
+}
+
+export interface TagPerformance {
+  total_reviews: number;
+  acertos: number;
+  erros: number;
+  avg_quality: number;
+  cards_count: number;
+}
+
+export interface FlashcardReportGeral {
+  total_cards: number;
+  total_reviews: number;
+  avg_easiness: number;
+  avg_quality: number;
+  acertos: number;
+  erros: number;
+  precisao: number;
+  cards_mastered: number;
+  cards_learning: number;
+  cards_due_today: number;
+}
+
+export interface FlashcardReport {
+  geral: FlashcardReportGeral;
+  por_tag: Record<string, TagPerformance>;
+}
+
+export interface DueFlashcardsResponse {
+  cards: Flashcard[];
+  total: number;
+}
+
 export interface FeatureUsage {
   usado: number;
   limite: number | null;

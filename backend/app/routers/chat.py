@@ -4,10 +4,15 @@ from typing import Dict, List
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from app.middleware.auth import get_current_user
 from app.services import chat_service
+
+
+class UpdateTitleBody(BaseModel):
+    titulo: str
 
 load_dotenv()
 
@@ -90,6 +95,26 @@ async def get_chat_session(session_id: str, user: dict = Depends(get_current_use
             raise HTTPException(status_code=404, detail="Sessão não encontrada")
         return []
     return messages
+
+
+@router.patch("/sessions/{session_id}")
+async def update_chat_session_title(
+    session_id: str, body: UpdateTitleBody, user: dict = Depends(get_current_user)
+):
+    try:
+        chat_service.update_session_title(session_id, user["id"], body.titulo)
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_chat_session(session_id: str, user: dict = Depends(get_current_user)):
+    try:
+        chat_service.delete_session(session_id, user["id"])
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/cost-check")

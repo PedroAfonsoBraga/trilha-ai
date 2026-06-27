@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 from supabase import create_client, Client
 
 load_dotenv()

@@ -1,22 +1,18 @@
 import io
 import json
 import logging
-import os
 import re
 
 from dotenv import load_dotenv
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-import httpx
+
+from app.services.llm_client import generate_text
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
 
 STRUCTURE_SYSTEM_PROMPT = """Você é um assistente acadêmico especializado em analisar a estrutura de Trabalhos de Conclusão de Curso (TCC).
 
@@ -112,7 +108,7 @@ def _try_parse_json(content: str) -> dict:
     except json.JSONDecodeError as e:
         logger.warning(f"JSON parse failed at {e.pos}: {e.msg}, attempting recovery")
         truncated = content[:e.pos]
-        if truncated.rstrip().endswith('"') is False and '"' in truncated:
+        if not truncated.rstrip().endswith('"') and '"' in truncated:
             truncated = truncated.rsplit('"', 1)[0] + '"\n'
         open_braces = truncated.count("{") - truncated.count("}")
         open_brackets = truncated.count("[") - truncated.count("]")
@@ -124,48 +120,42 @@ def _try_parse_json(content: str) -> dict:
             raise ValueError(f"Não foi possível recuperar o JSON da resposta: {content[:200]}...")
 
 
-async def _call_deepseek(system_prompt: str, texto: str) -> str:
-    if not DEEPSEEK_API_KEY:
-        raise ValueError("DEEPSEEK_API_KEY não configurada")
-    input_text = texto[:120000]
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        response = await client.post(
-            DEEPSEEK_URL,
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEFAULT_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Texto do TCC:\n\n{input_text}"},
-                ],
-                "max_tokens": 8192,
-                "temperature": 0.3,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-    content = data["choices"][0]["message"]["content"]
-    finish_reason = data["choices"][0].get("finish_reason", "")
-    if finish_reason == "length":
-        logger.warning("DeepSeek response truncated by token limit")
-    return content
-
-
 async def analyze_structure(texto: str) -> dict:
-    content = await _call_deepseek(STRUCTURE_SYSTEM_PROMPT, texto)
+    if len(texto) > 500000:
+        logger.warning(f"Texto truncado de {len(texto)} para 500000 caracteres para análise de estrutura")
+
+    content = await generate_text(
+        system_prompt=STRUCTURE_SYSTEM_PROMPT,
+        user_text=f"Texto do TCC:\n\n{texto[:500000]}",
+        max_tokens=8192,
+        temperature=0.3,
+    )
     return _try_parse_json(content)
 
 
 async def review_text(texto: str) -> dict:
-    content = await _call_deepseek(REVIEW_SYSTEM_PROMPT, texto)
+    if len(texto) > 500000:
+        logger.warning(f"Texto truncado de {len(texto)} para 500000 caracteres para revisão textual")
+
+    content = await generate_text(
+        system_prompt=REVIEW_SYSTEM_PROMPT,
+        user_text=f"Texto do TCC:\n\n{texto[:500000]}",
+        max_tokens=8192,
+        temperature=0.3,
+    )
     return _try_parse_json(content)
 
 
 async def extract_references(texto: str) -> dict:
-    content = await _call_deepseek(REFERENCES_ABNT_SYSTEM_PROMPT, texto)
+    if len(texto) > 500000:
+        logger.warning(f"Texto truncado de {len(texto)} para 500000 caracteres para extração de referências")
+
+    content = await generate_text(
+        system_prompt=REFERENCES_ABNT_SYSTEM_PROMPT,
+        user_text=f"Texto do TCC:\n\n{texto[:500000]}",
+        max_tokens=8192,
+        temperature=0.3,
+    )
     return _try_parse_json(content)
 
 
