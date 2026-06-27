@@ -1,3 +1,5 @@
+"use client";
+
 import { useRef } from "react";
 import { FileUp, ScanSearch, Download } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap/gsapConfig";
