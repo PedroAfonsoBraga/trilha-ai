@@ -13,13 +13,14 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: subscription } = await supabase
+    const { data: subscriptions } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
-      .single();
+      .limit(1);
 
-    if (!subscription?.stripe_customer_id) {
+    const customer_id = subscriptions?.[0]?.stripe_customer_id;
+    if (!customer_id) {
       return NextResponse.json(
         { error: "No Stripe customer found" },
         { status: 400 }
@@ -27,7 +28,7 @@ export async function POST() {
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
+      customer: customer_id,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     });
 

@@ -163,7 +163,7 @@ def gerar_cronograma_urgencia(
     disciplinas_ordenadas = sorted(disciplinas, key=lambda d: d.get("peso", 1), reverse=True)
 
     cronograma = []
-    dia_atual = hoje
+    dia_atual = hoje  # noqa: F841
 
     for dia_offset in range(dias_disponiveis):
         horas_disponiveis = horas_por_dia

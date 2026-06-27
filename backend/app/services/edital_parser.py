@@ -1,16 +1,13 @@
 import json
 import logging
-import os
 import re
-from datetime import date, timedelta
+from datetime import date
 
-import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
 
 BANCAS = {
     "cespe": ["cespe", "cebraspe", "cespe/unb", "cebraspe/das"],
@@ -73,7 +70,7 @@ def extrair_datas(texto: str) -> list[dict]:
         "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
         "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
     }
-    short_months = {
+    short_months = {  # noqa: F841
         "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5,
         "jun": 6, "jul": 7, "ago": 8, "set": 9, "out": 10,
         "nov": 11, "dez": 12,
@@ -213,32 +210,16 @@ def _try_parse_json(content: str) -> dict:
 
 
 async def parse_edital_ia(texto: str) -> dict:
-    if not DEEPSEEK_API_KEY:
-        raise ValueError("DEEPSEEK_API_KEY não configurada")
+    from app.services.llm_client import generate_text
 
     input_text = texto[:120000]
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        response = await client.post(
-            DEEPSEEK_URL,
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEFAULT_MODEL,
-                "messages": [
-                    {"role": "system", "content": EDITAL_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Texto do edital:\n\n{input_text}"},
-                ],
-                "max_tokens": 8192,
-                "temperature": 0.3,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-
-    content = data["choices"][0]["message"]["content"]
+    content = await generate_text(
+        system_prompt=EDITAL_SYSTEM_PROMPT,
+        user_text=f"Texto do edital:\n\n{input_text}",
+        max_tokens=8192,
+        temperature=0.3,
+    )
     return _try_parse_json(content)
 
 
@@ -286,14 +267,17 @@ async def parse_edital(texto: str) -> dict:
     regex_result = parse_edital_regex(texto)
     banca_detectada = regex_result.get("banca", "indefinida")
 
-    if DEEPSEEK_API_KEY:
-        try:
-            ia_result = await parse_edital_ia(texto)
-            merged = {**regex_result, **ia_result}
-            if banca_detectada != "indefinida" and ia_result.get("banca") == "indefinida":
-                merged["banca"] = banca_detectada
-            return merged
-        except Exception as e:
-            logger.warning(f"DeepSeek parse failed, falling back to regex: {e}")
+    try:
+        from app.services.llm_client import GEMINI_API_KEY
+
+        if not GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY não configurada")
+        ia_result = await parse_edital_ia(texto)
+        merged = {**regex_result, **ia_result}
+        if banca_detectada != "indefinida" and ia_result.get("banca") == "indefinida":
+            merged["banca"] = banca_detectada
+        return merged
+    except Exception as e:
+        logger.warning(f"IA parse failed, falling back to regex: {e}")
 
     return regex_result

@@ -55,7 +55,7 @@ export default async function DashboardPage() {
           <p className="text-slate-500 text-sm mt-1">{saudacao}</p>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <a
             href="/dashboard/concurso"
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
@@ -72,6 +72,42 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-semibold text-slate-900">Chat com Documentos</h2>
             <p className="mt-2 text-sm text-slate-600">
               Converse com seus editais e PDFs — tire dúvidas com IA contextual.
+            </p>
+          </a>
+          <a
+            href="/dashboard/library"
+            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">Biblioteca</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Organize seus documentos com tags, busque por conteúdo e revise com inteligência.
+            </p>
+          </a>
+          <a
+            href="/dashboard/flashcards"
+            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">Revisão Espaçada</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Revise flashcards com o método SM-2, acompanhe seu desempenho e fixe o conteúdo.
+            </p>
+          </a>
+          <a
+            href="/dashboard/tcc"
+            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">TCC Assistant</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Analise estrutura, revise clareza e verifique referências ABNT do seu TCC com IA.
+            </p>
+          </a>
+          <a
+            href="/dashboard/plano"
+            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">Meu Plano</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Gerencie sua assinatura, veja seus limites de uso e faça upgrade.
             </p>
           </a>
         </div>

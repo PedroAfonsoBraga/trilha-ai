@@ -1,19 +1,16 @@
 import io
 import json
 import logging
-import os
 import re
 
-import httpx
+from dotenv import load_dotenv
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-logger = logging.getLogger(__name__)
+load_dotenv()
 
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
+logger = logging.getLogger(__name__)
 
 FICHAMENTO_ABNT_SYSTEM = """Você é um especialista em fichamento acadêmico no formato ABNT.
 
@@ -65,38 +62,16 @@ def _try_parse_json(content: str) -> dict:
 
 
 async def gerar_fichamento_ia(texto: str) -> dict:
-    if not DEEPSEEK_API_KEY:
-        raise ValueError("DEEPSEEK_API_KEY não configurada")
+    from app.services.llm_client import generate_text
 
-    # Truncate input to leave room for response (80000 tokens ≈ 320KB)
     input_text = texto[:120000]
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        response = await client.post(
-            DEEPSEEK_URL,
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEFAULT_MODEL,
-                "messages": [
-                    {"role": "system", "content": FICHAMENTO_ABNT_SYSTEM},
-                    {"role": "user", "content": f"Texto para fichamento:\n\n{input_text}"},
-                ],
-                "max_tokens": 8192,
-                "temperature": 0.3,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-
-    content = data["choices"][0]["message"]["content"]
-    finish_reason = data["choices"][0].get("finish_reason", "")
-
-    if finish_reason == "length":
-        logger.warning("DeepSeek response truncated by token limit")
-
+    content = await generate_text(
+        system_prompt=FICHAMENTO_ABNT_SYSTEM,
+        user_text=f"Texto para fichamento:\n\n{input_text}",
+        max_tokens=8192,
+        temperature=0.3,
+    )
     return _try_parse_json(content)
 
 

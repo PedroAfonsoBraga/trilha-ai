@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from ics import Calendar, Event
 
@@ -27,7 +27,7 @@ def criar_calendario_ics(cronograma: list[dict], titulo: str = "Cronograma de Es
             parts = periodo.split(" a ")
             try:
                 begin = datetime.strptime(parts[0].strip(), "%Y-%m-%d")
-                end = datetime.strptime(parts[1].strip(), "%Y-%m-%d")
+                end = datetime.strptime(parts[1].strip(), "%Y-%m-%d")  # noqa: F841
                 ev.begin = begin.replace(hour=8)
                 ev.end = begin.replace(hour=8 + min(item["horas"], 8))
                 ev.duration = timedelta(hours=item["horas"])

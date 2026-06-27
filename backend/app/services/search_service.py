@@ -1,19 +1,18 @@
 import json
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-import httpx
+from dotenv import load_dotenv
 
 from app.services.embedding_service import gerar_embedding
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
 
 
 def _get_supabase():
@@ -65,26 +64,14 @@ async def rerank_chunks(query: str, chunks: List[Dict], top_k: int = 5) -> List[
         "Responda APENAS com um JSON: {\"ranked_indices\": [3, 0, 7, 1, 5]}"
     )
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            DEEPSEEK_URL,
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEFAULT_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Query: {query}\n\nChunks:\n{chunk_texts}"},
-                ],
-                "max_tokens": 256,
-                "temperature": 0,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
+    from app.services.llm_client import generate_text
+
+    content = await generate_text(
+        system_prompt=system_prompt,
+        user_text=f"Query: {query}\n\nChunks:\n{chunk_texts}",
+        max_tokens=256,
+        temperature=0,
+    )
 
     try:
         content = content.strip()

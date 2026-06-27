@@ -16,6 +16,19 @@ def get_supabase_admin() -> Client:
 
 def get_user_plan(user_id: str) -> str:
     supabase = get_supabase_admin()
+
+    sub = (
+        supabase.table("subscriptions")
+        .select("plan, status")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if sub.data:
+        for s in sub.data:
+            if s.get("status") in ("active", "trialing"):
+                return s.get("plan", "free")
+
     profile = (
         supabase.table("profiles")
         .select("plano")

@@ -2,10 +2,10 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.middleware.auth import get_current_user
-from app.services import notifications_service
+from app.services import notifications_service, review_service
 
 load_dotenv()
 
@@ -75,4 +75,10 @@ async def update_notification_preferences(
 @router.post("/check-deadlines")
 async def trigger_deadline_check(user: dict = Depends(get_current_user)):
     result = await notifications_service.checar_e_notificar_prazos()
+    return result
+
+
+@router.post("/review-reminders")
+async def trigger_review_reminders(user: dict = Depends(get_current_user)):
+    result = await review_service.checar_e_notificar_revisoes()
     return result

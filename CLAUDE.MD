@@ -11,7 +11,7 @@ Nome: Trilha (definitivo).
 - Frontend: Next.js 14 (App Router) + Tailwind + shadcn/ui → Vercel
 - Backend: FastAPI (Python 3.11) → Railway
 - Banco: Supabase (PostgreSQL + pgvector + Auth + Storage)
-- IA: DeepSeek V4 Flash (chat completions) via httpx
+- IA: Gemini 3.1 Flash-Lite (Interactions API) via google-genai SDK
 - Embeddings: Voyage-3-lite
 - Pagamentos: Stripe (Checkout + Customer Portal + webhooks)
 - Email: Resend + React Email
@@ -22,7 +22,7 @@ Nome: Trilha (definitivo).
 ## Regras obrigatórias
 - Async/await em todo o backend — sem código síncrono em rotas
 - Verificar subscription.status SEMPRE no backend, nunca no frontend
-- Usar DeepSeek Chat completions API em todas as chamadas com docs > 2k tokens
+- Usar Gemini Interactions API (`gemini-3.1-flash-lite`) em todas as chamadas com docs > 2k tokens
 - RLS ativo em todas as tabelas Supabase desde a migration 001
 - Variáveis de ambiente: nunca hardcodar keys no código
 
@@ -36,8 +36,9 @@ private: sk_test_xxxx
 - Pro (R$39,90): tudo ilimitado + Concurso Assistant
 
 ## Sprint atual
-Sprint 4 — RAG + Chat (concluído)
-Sprint 5 — Lançamento e Growth (próxima)
+Sprint 6 — Troca DeepSeek → Gemini + TCC Assistant (concluído)
+Sprint 7 — Revisão Espaçada (concluído)
+Sprint 8 — Histórico + Progresso (próximo)
 
 ## Como iniciar cada sessão
 Leia docs/learnings/session-notes.md antes de qualquer tarefa.
