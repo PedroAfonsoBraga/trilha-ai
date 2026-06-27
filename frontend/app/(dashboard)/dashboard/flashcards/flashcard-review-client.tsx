@@ -22,7 +22,6 @@ export default function FlashcardReviewClient({
   cards,
   accessToken,
 }: FlashcardReviewClientProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -42,7 +41,7 @@ export default function FlashcardReviewClient({
     [cards, completed],
   );
 
-  const currentCard = activeCards[currentIndex] ?? null;
+  const currentCard = activeCards[0] ?? null;
 
   // --- Submete revisão ---
   const submitReview = useCallback(
@@ -100,7 +99,7 @@ export default function FlashcardReviewClient({
         setSubmitting(false);
       }
     },
-    [currentCard, submitting, currentIndex, activeCards.length, cards, completed, accessToken],
+    [currentCard, submitting, cards, completed, accessToken],
   );
 
   // --- Tela de resumo da sessão ---

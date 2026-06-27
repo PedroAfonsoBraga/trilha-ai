@@ -119,7 +119,7 @@ function IssueCard({ issue }: { issue: TccReviewIssue }) {
         </span>
       </div>
       <p className="text-sm text-slate-700 mb-1">
-        <span className="font-medium">Trecho:</span> "{issue.trecho}"
+        <span className="font-medium">Trecho:</span> &ldquo;{issue.trecho}&rdquo;
       </p>
       <p className="text-sm text-slate-600">
         <span className="font-medium">Sugestão:</span> {issue.sugestao_generica}
@@ -178,6 +178,7 @@ export default function TccClient({ docId, accessToken, initialAnalysis, initial
         throw new Error(data.detail || "Erro na análise");
       }
       const data = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const setters: Record<string, (v: any) => void> = {
         analyze: setAnalysis,
         review: setReview,

@@ -51,7 +51,7 @@ function statusBadge(status: string): { label: string; color: string } {
   };
 }
 
-export default function PlanoClient({ accessToken, usage, subscription, apiUrl, priceIds }: Props) {
+export default function PlanoClient({ usage, subscription, priceIds }: Props) {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [portalError, setPortalError] = useState("");
 

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { ChatSession } from "@/types/documents";
 import {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -130,7 +129,7 @@ export default function ChatSidebar({ accessToken, apiUrl, sidebarOpen, onClose 
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [fetchData, subscription?.plan]);
+  }, [fetchData, subscription?.plan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!editingId) return;

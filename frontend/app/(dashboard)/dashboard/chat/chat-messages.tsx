@@ -12,7 +12,7 @@ interface Props {
   hasSelectedDocs: boolean;
 }
 
-function highlightCode(code: string, language: string | undefined) {
+function highlightCode(code: string, _language: string | undefined) {
   return (
     <pre className="overflow-x-auto rounded-lg bg-slate-800 p-4 text-sm text-slate-100">
       <code>{code}</code>
