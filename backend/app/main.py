@@ -81,9 +81,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS — origens permitidas
+# FRONTEND_URL deve ser configurada em produção (ex: https://trilha.vercel.app)
+# Múltiplas origens podem ser separadas por vírgula em CORS_ORIGINS.
+_cors_origins = os.getenv("CORS_ORIGINS", "")
+if _cors_origins:
+    allow_origins = [o.strip() for o in _cors_origins.split(",")]
+else:
+    # Fallback para dev local + FRONTEND_URL (se configurado)
+    _frontend_url = os.getenv("FRONTEND_URL", "")
+    allow_origins = ["http://localhost:3000"]
+    if _frontend_url:
+        allow_origins.append(_frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
