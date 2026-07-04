@@ -11,19 +11,41 @@ backend/
 ├── app/
 │   ├── main.py              ← app FastAPI, CORS, routers
 │   ├── routers/
-│   │   ├── concurso.py      ← parser de edital, cronograma
-│   │   ├── flashcards.py    ← geração + export .apkg
-│   │   ├── fichamento.py    ← fichamento ABNT + export .docx
+│   │   ├── documents.py     ← parser de edital, cronograma, flashcards
+│   │   ├── flashcards.py    ← revisão espaçada SM-2
 │   │   ├── billing.py       ← webhooks Stripe
+│   │   ├── sharing.py       ← links públicos de export
+│   │   ├── profile.py       ← perfil do usuário, limites, assinatura
+│   │   ├── notifications.py ← preferências de notificação
+│   │   ├── chat.py          ← chat RAG com documentos
+│   │   ├── library.py       ← biblioteca com busca semântica
+│   │   ├── dashboard.py     ← dashboard consolidado
+│   │   ├── user.py          ← custos e exclusão LGPD
+│   │   ├── admin.py         ← administração
 │   │   └── auth.py          ← validação de token Supabase
 │   ├── services/
-│   │   ├── ai_service.py    ← chamadas Claude API (caching aqui)
-│   │   ├── pdf_service.py   ← extração texto (PyMuPDF + Tesseract)
-│   │   ├── anki_service.py  ← geração .apkg (genanki)
-│   │   ├── docx_service.py  ← geração .docx ABNT (python-docx)
+│   │   ├── pdf_extractor.py ← extração texto (PyMuPDF + LlamaParse)
+│   │   ├── _pymupdf_extractor.py ← fallback PyMuPDF (interno)
+│   │   ├── llama_parser.py  ← parser LlamaParse (Markdown)
+│   │   ├── edital_parser.py ← parser de editais com IA
+│   │   ├── schedule_generator.py ← fallback de cronograma (editais sem tópicos)
 │   │   ├── ics_service.py   ← geração .ics calendário
-│   │   ├── rag_service.py   ← embeddings + busca pgvector
-│   │   └── stripe_service.py← lógica de billing
+│   │   ├── flashcard_service.py ← geração flashcards via IA
+│   │   ├── anki_service.py  ← geração .apkg (genanki)
+│   │   ├── rate_limiter.py  ← limites por plano
+│   │   ├── review_service.py ← notificações de revisão
+│   │   ├── spaced_repetition_service.py ← motor SM-2
+│   │   ├── dashboard_service.py ← orquestrador do dashboard
+│   │   ├── llm_client.py    ← cliente DeepSeek V4 Flash (OpenRouter, OpenAI-compatible) compartilhado
+    │   │   ├── cache_service.py ← cache de outputs de IA
+    │   │   ├── chunking_service.py ← chunking inteligente
+    │   │   ├── embedding_service.py ← embeddings Voyage (voyage-4-large docs + voyage-4-lite queries, feature flag)
+    │   │   ├── pdf_cache_service.py ← cache global de PDFs parseados/chunkados (hash)
+    │   │   ├── upload_job_service.py ← worker assíncrono de pipeline de upload
+    │   │   ├── search_service.py ← busca semântica pgvector
+│   │   ├── chat_service.py  ← chat RAG com streaming
+│   │   ├── progress_service.py ← progresso do aluno
+│   │   └── admin_service.py ← administração
 │   ├── models/
 │   │   ├── requests.py      ← Pydantic request models
 │   │   └── responses.py     ← Pydantic response models
@@ -63,19 +85,18 @@ LIMITS = {
 # -1 = ilimitado
 # Verificar usage na tabela usage_tracking antes de processar
 
-## Padrão de chamada à IA (ai_service.py)
-# SEMPRE usar prompt caching em documentos > 2k tokens
-response = await anthropic.messages.create(
-    model="claude-sonnet-4-5",
-    max_tokens=4096,
-    system=[{
-        "type": "text",
-        "text": SYSTEM_PROMPT,
-        "cache_control": {"type": "ephemeral"}  # ← obrigatório
-    }],
-    messages=[...]
+## Padrão de chamada à IA (llm_client.py)
+# Usar OpenAI Chat Completions API via OpenRouter (DeepSeek V4 Flash)
+response = await client.chat.completions.create(
+    model="deepseek/deepseek-v4-flash",
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_text},
+    ],
+    max_tokens=16384,
+    temperature=0.3,
 )
-# Logar sempre: tokens de input, output e cache_read_input_tokens
+# Logar sempre: tokens de input e output via _log_ai_usage()
 
 ## Processamento de PDF
 # Ordem de tentativa:
@@ -94,16 +115,37 @@ SUPABASE_URL= https://kemuelptejyczyobfxuj.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=   ← nunca o anon key no backend
 NEXT_PUBLIC_SUPABASE_URL=https://kemuelptejyczyobfxuj.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_jBdStyfmeE-m423cg5-Q8Q_cTpxdqyM
-ANTHROPIC_API_KEY= 
+OPENROUTER_API_KEY= 
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 VOYAGE_API_KEY=
 RESEND_API_KEY=
 
+## Upload de PDFs (Sprint 15)
+# Pipeline assíncrono:
+#   1. POST /api/documents/upload valida, faz upload do storage e enfileira job.
+#   2. Cache hit (mesmo PDF já processado): retorna 200 imediato.
+#   3. Cache miss: retorna 202 { id, job_id }.
+#   4. upload_job_service.run_upload_job() executa parse → chunk → embed → upsert.
+#   5. GET /api/documents/upload/{job_id}/stream retorna SSE com progresso.
+#   6. main.py marca jobs em 'processing' órfãos como 'failed' no startup.
+#
+# Cache por hash:
+#   - sha256(file_bytes) + embedding_model compõem a chave.
+#   - Tabela document_hash_cache armazena texto, markdown e chunks+embeddings.
+#
+# Migração de embeddings:
+#   - scripts/reindex_voyage4.py → re-indexa todos os docs com voyage-4-large.
+#   - scripts/check_voyage4_cutover.py → verifica se cutover é seguro.
+#   - Feature flag EMBEDDING_MODEL_VERSION controla modelo ativo.
+
 ## Custos — monitorar sempre
 # Antes de qualquer chamada IA, logar estimativa de custo
 # Claude Sonnet: $3/M input, $15/M output
-# Voyage-3-lite: $0,02/M tokens
+# Custos de embeddings (atualizados Sprint 15)
+# voyage-3 (legado):   $0.06/M tokens
+# voyage-4-large:      $0.12/M tokens (200M tokens free)
+# voyage-4-lite:       $0.02/M tokens  (200M tokens free)
 # Registrar na tabela ai_usage_log: user_id, tokens, custo_estimado, feature
 
 ## Testes

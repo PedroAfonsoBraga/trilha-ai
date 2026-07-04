@@ -71,12 +71,20 @@ export default async function FlashcardsReviewPage() {
               Você está em dia com suas revisões. Volte amanhã ou gere novos
               flashcards a partir dos seus documentos.
             </p>
-            <a
-              href="/dashboard/concurso"
-              className="inline-block mt-6 rounded-lg bg-teal-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-teal-700 transition-colors"
-            >
-              Gerar novos flashcards
-            </a>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <a
+                href="/dashboard/library"
+                className="inline-block rounded-lg bg-teal-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-teal-700 transition-colors"
+              >
+                Escolher documento na biblioteca
+              </a>
+              <a
+                href="/dashboard/concurso"
+                className="text-sm text-teal-600 hover:text-teal-700"
+              >
+                Ou fazer upload de um novo documento →
+              </a>
+            </div>
           </div>
         ) : (
           <FlashcardReviewClient

@@ -1,59 +1,72 @@
-import io
+"""
+Fachada de extracao de texto de PDFs — tenta LlamaParse, fallback PyMuPDF
+
+Esta fachada preserva a assinatura original `extract_text_from_bytes()`
+para compatibilidade com todos os callers existentes (routers, chat_service).
+
+Fluxo:
+  1. Tenta LlamaParse (Markdown estruturado)
+  2. Se falhar (sem API key, timeout, erro), usa PyMuPDF (comportamento original)
+  3. Retorna texto puro (extract_text_from_bytes) ou dicionario completo
+     (extract_text_from_bytes_with_markdown)
+"""
+
 import logging
 from typing import Optional
 
-import fitz  # PyMuPDF
-import pytesseract
-from docx import Document as DocxDocument
-from PIL import Image
+from app.services import _pymupdf_extractor
+from app.services.llama_parser import parse_to_markdown
 
 logger = logging.getLogger(__name__)
 
 
-def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    full_text = ""
+async def extract_text_from_bytes_with_markdown(
+    file_bytes: bytes,
+    content_type: str,
+    filename: str = "documento.pdf",
+) -> dict:
+    """Extrai texto com suporte a Markdown estruturado via LlamaParse.
 
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        text = page.get_text()
+    Args:
+        file_bytes: Conteudo do arquivo em bytes.
+        content_type: Tipo MIME do arquivo.
+        filename: Nome original do arquivo (para o LlamaParse).
 
-        if text.strip():
-            full_text += f"\n--- Página {page_num + 1} ---\n{text}"
-        else:
-            ocr_text = _ocr_page(page)
-            if ocr_text:
-                full_text += f"\n--- Página {page_num + 1} (OCR) ---\n{ocr_text}"
+    Returns:
+        Dicionario com:
+            - texto_extraido (str): Texto puro extraido (via PyMuPDF).
+            - markdown (str | None): Markdown estruturado (via LlamaParse).
+            - page_count (int | None): Numero de paginas estimado.
+    """
+    # Extrai texto puro sempre — fallback confiavel
+    texto_extraido = _pymupdf_extractor.extract_text_from_bytes(file_bytes, content_type)
 
-    doc.close()
-    return full_text.strip()
+    markdown = None
+    page_count = None
 
+    # Tenta LlamaParse — falha silenciosa (apenas PDFs; DOCX usa PyMuPDF)
+    if "pdf" in content_type or (file_bytes[:4] == b"%PDF"):
+        try:
+            result = await parse_to_markdown(file_bytes, filename)
+            markdown = result.get("markdown")
+            page_count = result.get("page_count")
+        except Exception as e:
+            logger.info(
+                "LlamaParse nao disponivel para %s: %s — usando PyMuPDF",
+                filename, e,
+            )
 
-def extract_text_from_docx_bytes(docx_bytes: bytes) -> str:
-    doc = DocxDocument(io.BytesIO(docx_bytes))
-    paragraphs = []
-    for para in doc.paragraphs:
-        if para.text.strip():
-            paragraphs.append(para.text)
-    return "\n".join(paragraphs)
+    return {
+        "texto_extraido": texto_extraido,
+        "markdown": markdown,
+        "page_count": page_count,
+    }
 
 
 def extract_text_from_bytes(file_bytes: bytes, content_type: str) -> str:
-    if "pdf" in content_type or (file_bytes[:4] == b"%PDF"):
-        return extract_text_from_pdf_bytes(file_bytes)
-    elif "word" in content_type or "docx" in content_type or (
-        file_bytes[:2] == b"PK" and b"word/" in file_bytes[:500]
-    ):
-        return extract_text_from_docx_bytes(file_bytes)
-    else:
-        raise ValueError(f"Formato de arquivo não suportado: {content_type}")
+    """Extrai texto puro de PDF/DOCX (assinatura original, sfncrona).
 
-
-def _ocr_page(page: fitz.Page) -> Optional[str]:
-    try:
-        pix = page.get_pixmap(dpi=200)
-        img = Image.open(io.BytesIO(pix.tobytes("png")))
-        return pytesseract.image_to_string(img, lang="por")
-    except Exception as e:
-        logger.warning(f"OCR failed on page: {e}")
-        return None
+    Usa apenas PyMuPDF — nao tenta LlamaParse (sincrono).
+    Mantida para compatibilidade com callers sincronos.
+    """
+    return _pymupdf_extractor.extract_text_from_bytes(file_bytes, content_type)

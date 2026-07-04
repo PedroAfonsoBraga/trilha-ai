@@ -6,8 +6,8 @@ import { useReducedMotion } from "@/lib/gsap/useReducedMotion";
 
 const counters = [
   { value: 4200, prefix: "", suffix: "+", label: "editais processados" },
-  { value: 38000, prefix: "", suffix: "+", label: "flashcards gerados" },
-  { value: 280, prefix: "R$", suffix: "/mês", label: "economizados vs cursinho" },
+  { value: 38000, prefix: "", suffix: "+", label: "horas de estudo organizadas" },
+  { value: 280, prefix: "R$", suffix: "/mês", label: "economizados vs cursinho presencial" },
 ];
 
 export function CounterSection() {

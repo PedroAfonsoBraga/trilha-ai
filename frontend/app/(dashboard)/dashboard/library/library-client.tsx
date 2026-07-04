@@ -2,6 +2,17 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { LibraryDocument, SearchResult } from "@/types/documents";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   accessToken: string;
@@ -15,13 +26,23 @@ function formatDate(dateStr: string): string {
 }
 
 function tipoLabel(tipo: string): string {
-  return tipo === "edital" ? "Edital" : "PDF";
+  switch (tipo) {
+    case "edital": return "Edital";
+    case "pdf_generico": return "PDF de conteúdo";
+    default: return tipo;
+  }
 }
 
 function tipoBadgeClass(tipo: string): string {
-  return tipo === "edital"
-    ? "bg-blue-100 text-blue-700"
-    : "bg-amber-100 text-amber-700";
+  switch (tipo) {
+    case "edital": return "bg-blue-100 text-blue-700";
+    case "pdf_generico": return "bg-amber-100 text-amber-700";
+    default: return "bg-slate-100 text-slate-700";
+  }
+}
+
+function docLink(_tipo: string, id: string): string {
+  return `/dashboard/concurso/${id}`;
 }
 
 export default function LibraryClient({ accessToken, initialDocuments, apiUrl }: Props) {
@@ -35,6 +56,8 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
   const [sortOrder, setSortOrder] = useState("desc");
   const [editingTags, setEditingTags] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
+  const [deletingDoc, setDeletingDoc] = useState<LibraryDocument | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const allTags = Array.from(
@@ -127,22 +150,36 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
     handleUpdateTags(docId, currentTags.filter((t) => t !== tag));
   };
 
-  const handleDeleteDocument = async (docId: string) => {
+  const handleDeleteClick = (doc: LibraryDocument) => {
+    setDeletingDoc(doc);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingDoc) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`${apiUrl}/api/library/${docId}`, {
+      const res = await fetch(`${apiUrl}/api/library/${deletingDoc.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (res.ok) {
-        setDocuments((prev) => prev.filter((d) => d.id !== docId));
+        setDocuments((prev) => prev.filter((d) => d.id !== deletingDoc.id));
+        toast.success("Documento excluído com sucesso");
+      } else {
+        toast.error("Erro ao excluir documento");
       }
     } catch {
       // fallback
+    } finally {
+      setDeleting(false);
+      setDeletingDoc(null);
     }
   };
 
+  const nomeDocumento = deletingDoc?.nome_original || "documento";
+
   return (
-    <div className="space-y-6">
+    <><div className="space-y-6">
       {/* Search bar */}
       <div className="relative">
         <input
@@ -164,7 +201,7 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
             {searchResults.map((r) => (
               <a
                 key={r.chunk_id}
-                href={`/dashboard/concurso/${r.document_id}`}
+                href={docLink(r.tipo, r.document_id)}
                 className="block border-b border-slate-100 px-4 py-3 hover:bg-slate-50 last:border-b-0"
               >
                 <div className="flex items-center gap-2">
@@ -205,7 +242,7 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
         >
           <option value="">Todos os tipos</option>
           <option value="edital">Editais</option>
-          <option value="pdf_generico">PDFs</option>
+          <option value="pdf_generico">PDFs de conteúdo</option>
         </select>
 
         <select
@@ -271,7 +308,7 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
                     )}
                   </div>
                   <a
-                    href={`/dashboard/concurso/${doc.id}`}
+                    href={docLink(doc.tipo, doc.id)}
                     className="text-sm font-semibold text-slate-900 hover:text-teal-600 truncate block"
                   >
                     {doc.nome_original}
@@ -282,7 +319,7 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
                 </div>
 
                 <button
-                  onClick={() => handleDeleteDocument(doc.id)}
+                  onClick={() => handleDeleteClick(doc)}
                   className="flex-shrink-0 rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
                   title="Excluir documento"
                 >
@@ -344,5 +381,31 @@ export default function LibraryClient({ accessToken, initialDocuments, apiUrl }:
         </div>
       )}
     </div>
+
+      {/* Confirmacao de exclusao */}
+      <AlertDialog open={!!deletingDoc} onOpenChange={(open) => { if (!open) setDeletingDoc(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong className="break-all">{nomeDocumento}</strong>?
+              <br />
+              Esta ação não pode ser desfeita. Todos os flashcards, progresso e
+              análises associados a este documento serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting ? "Excluindo..." : "Sim, excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

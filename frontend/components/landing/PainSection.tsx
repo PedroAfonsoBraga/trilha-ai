@@ -5,9 +5,21 @@ import { gsap, useGSAP } from "@/lib/gsap/gsapConfig";
 import { useReducedMotion } from "@/lib/gsap/useReducedMotion";
 
 const cards = [
-  { title: "Edital com 20 disciplinas e você não sabe por onde começar", desc: "O edital saiu, são dezenas de matérias, e a ansiedade toma conta antes mesmo de abrir o primeiro PDF." },
-  { title: "Fichamento na mão, horas perdidas, formatação errada", desc: "Você passa mais tempo formatando no Word do que estudando. E ainda erra as normas ABNT." },
-  { title: "Flashcards que você nunca termina de montar no Anki", desc: "Você sabe que revisão espaçada funciona, mas montar os cards consome um tempo que você não tem." },
+  {
+    icon: "📋",
+    title: "Edital impossível de organizar",
+    desc: "Dezenas de disciplinas, pesos diferentes, datas espalhadas. Você não sabe por onde começar.",
+  },
+  {
+    icon: "🏦",
+    title: "Cada banca tem seu estilo",
+    desc: "CESPE cobra diferente da FCC. Sem saber o padrão da sua banca, você estuda o que não vai cair.",
+  },
+  {
+    icon: "📅",
+    title: "Cronograma que dura uma semana",
+    desc: "Você monta na mão, perde um dia e desmorona. Não tem plano B e recomeça do zero.",
+  },
 ];
 
 export function PainSection() {
@@ -27,11 +39,11 @@ export function PainSection() {
   return (
     <section ref={sectionRef} className="px-4 py-20 md:py-28 bg-muted/30">
       <div className="mx-auto max-w-6xl">
-        <h2 ref={titleRef} className="text-center text-3xl font-bold text-foreground md:text-4xl">Você estuda muito. Mas está estudando certo?</h2>
+        <h2 ref={titleRef} className="text-center text-3xl font-bold text-foreground md:text-4xl">Você estuda. Mas sem direção, estuda a coisa errada.</h2>
         <div ref={cardsRef} className="mt-14 grid gap-6 md:grid-cols-3">
           {cards.map((c, i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-6">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive text-lg font-bold">!</div>
+              <div className="mb-4 text-3xl">{c.icon}</div>
               <h3 className="text-lg font-semibold text-foreground">{c.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
             </div>

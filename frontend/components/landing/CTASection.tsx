@@ -26,7 +26,7 @@ export function CTASection() {
         <h2 ref={titleRef} className="text-3xl font-bold text-primary-foreground md:text-4xl">Sua aprovação começa com o primeiro edital.</h2>
         <p ref={subRef} className="mt-4 text-primary-foreground/80">Grátis para começar. Sem cartão de crédito.</p>
         <div ref={btnRef} className="mt-8">
-          <Link href="/cadastro" className="inline-block rounded-lg bg-white px-10 py-4 text-base font-semibold text-primary shadow-lg transition-colors hover:bg-white/90">Criar conta grátis</Link>
+          <Link href="/cadastro" className="inline-block rounded-lg bg-white px-10 py-4 text-base font-semibold text-primary shadow-lg transition-colors hover:bg-white/90">Criar conta grátis →</Link>
         </div>
       </div>
     </section>

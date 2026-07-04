@@ -15,7 +15,6 @@ const FEATURE_LABELS: Record<string, string> = {
   edital: "Editais",
   pdf: "PDFs",
   flashcard: "Flashcards por documento",
-  fichamento: "Fichamentos",
 };
 
 const PLAN_NAMES: Record<string, string> = {

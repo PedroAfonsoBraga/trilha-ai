@@ -30,8 +30,8 @@ cd backend && uv run python -c "from app.main import app"
 - **NÃO há conexão direta ao PostgreSQL** — firewall do Supabase bloqueia. Toda migration roda no SQL Editor do Dashboard.
 - Backend comunica com Supabase via `service_role_key` usando a lib `supabase` (client HTTP).
 - Frontend comunica com backend via `/api/*` usando `fetch` + `accessToken` no header `Authorization: Bearer`.
-- IA: Gemini 3.1 Flash-Lite (Interactions API) via google-genai SDK.
-- Embeddings: Voyage-3-lite, **1024 dimensões** (não 512).
+- IA: DeepSeek V4 Flash (deepseek/deepseek-v4-flash) via OpenRouter (OpenAI-compatible, AsyncOpenAI SDK).
+- Embeddings: `voyage-4-large` para documentos e `voyage-4-lite` para queries (default 1024 dims, vetorialmente compatíveis). Cutover controlado por `EMBEDDING_MODEL_VERSION` no `.env` (`voyage-3` legado / `voyage-4`).
 
 ## Padrões que quebram em produção
 

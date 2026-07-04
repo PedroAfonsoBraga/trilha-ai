@@ -25,13 +25,15 @@ export function Footer() {
           </svg>
           <span className="text-lg font-bold text-foreground">Trilha</span>
         </div>
-        <p className="text-sm text-muted-foreground">Trilha — Feito para quem estuda de verdade.</p>
+        <p className="text-sm text-muted-foreground">Feito para quem estuda de verdade.</p>
         <nav className="flex items-center gap-6">
+          <Link href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Funcionalidades</Link>
+          <Link href="#pricing" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Preços</Link>
           <Link href="/termos" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Termos</Link>
           <Link href="/privacidade" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Privacidade</Link>
           <Link href="mailto:contato@trilha.ai" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Contato</Link>
         </nav>
-        <p className="text-sm text-muted-foreground">Feito no Brasil 🇧🇷</p>
+        <p className="text-sm text-muted-foreground">© 2025 Trilha. Feito no Brasil 🇧🇷</p>
       </div>
     </footer>
   );

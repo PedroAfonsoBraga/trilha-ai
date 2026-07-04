@@ -53,6 +53,7 @@ create table documents (
   nome_original text not null,
   storage_path text not null,
   texto_extraido text,
+  markdown_text text,               -- Markdown estruturado (LlamaParse) — sprint 10
   metadata jsonb default '{}',
   processado boolean default false,
   created_at timestamptz default now()
@@ -102,23 +103,27 @@ create table ai_usage_log (
   created_at timestamptz default now()
 );
 
-### documents_embeddings
-Vetores para busca semântica (pgvector)
+### document_chunks
+Chunks com vetores para busca semântica (pgvector) — migration 007
 
-create table document_embeddings (
+```sql
+create table document_chunks (
   id uuid primary key default gen_random_uuid(),
-  document_id uuid references documents(id) not null,
-  user_id uuid references profiles(id) not null,
+  document_id uuid references documents(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
   chunk_index int not null,
-  chunk_text text not null,
-  embedding vector(512), -- Voyage-3-lite usa 512 dimensões
+  content text not null,
+  token_count int,
+  embedding vector(1024),       -- Voyage-3, 1024 dimensões (NÃO 512)
   created_at timestamptz default now()
 );
 
--- Index obrigatório para performance
-create index on document_embeddings 
+-- Index obrigatório para performance (IVFFlat cosine)
+create index idx_document_chunks_embedding
+  on document_chunks
   using ivfflat (embedding vector_cosine_ops)
   with (lists = 100);
+```
 
 ### RLS 
 -- Aplicar em TODAS as tabelas com user_id

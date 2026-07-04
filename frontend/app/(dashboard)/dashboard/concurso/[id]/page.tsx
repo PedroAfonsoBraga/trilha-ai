@@ -51,8 +51,6 @@ export default async function ConcursoDetailPage({
   const accessToken = session.access_token;
   const metadata = doc.metadata || {};
   const parsed = metadata.parsed || null;
-  const cronograma = metadata.cronograma || null;
-  const fichamento = metadata.fichamento || null;
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -63,7 +61,7 @@ export default async function ConcursoDetailPage({
           </a>
           <h1 className="text-2xl font-bold text-slate-900">{doc.nome_original}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Tipo: {doc.tipo === "edital" ? "Edital" : "PDF Genérico"} &middot;{" "}
+            Tipo: {doc.tipo === "edital" ? "Edital" : "PDF de conteúdo"} &middot;{" "}
             {doc.texto_extraido ? `${doc.texto_extraido.length} caracteres extraídos` : "Sem texto extraído"}
           </p>
         </div>
@@ -73,8 +71,6 @@ export default async function ConcursoDetailPage({
           accessToken={accessToken}
           doc={doc}
           parsed={parsed}
-          cronograma={cronograma}
-          fichamento={fichamento}
         />
       </div>
     </div>

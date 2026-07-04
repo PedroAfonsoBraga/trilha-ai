@@ -27,7 +27,6 @@ interface Props {
 
 function getDocIcon(tipo: string): string {
   if (tipo === "edital") return "📋";
-  if (tipo === "tcc") return "🎓";
   return "📄";
 }
 

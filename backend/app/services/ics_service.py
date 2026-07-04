@@ -13,13 +13,21 @@ def criar_calendario_ics(cronograma: list[dict], titulo: str = "Cronograma de Es
 
     for item in cronograma:
         ev = Event()
-        ev.name = f"{item['disciplina']} ({item['horas']}h)"
-        ev.description = (
-            f"Disciplina: {item['disciplina']}\n"
+        topico = item.get('topico', '')
+        disciplina = item['disciplina']
+        if topico:
+            ev.name = f"[{disciplina}] {topico}"
+        else:
+            ev.name = f"{disciplina} ({item['horas']}h)"
+
+        descricao = (
+            f"Disciplina: {disciplina}\n"
             f"Horas de estudo: {item['horas']}h\n"
-            f"Semana {item['semana']}"
-            f"{footer_note}"
         )
+        if topico:
+            descricao += f"Tópico: {topico}\n"
+        descricao += f"Semana {item['semana']}{footer_note}"
+        ev.description = descricao
         ev.location = "Estudo em casa"
 
         periodo = item["periodo"]

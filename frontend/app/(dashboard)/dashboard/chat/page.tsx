@@ -83,7 +83,6 @@ export default async function ChatPage({
       // fallback
     }
   } else if (docIdFromParams) {
-    // Pré-seleciona o documento vindo do TCC Assistant
     initialSelectedDocs = [docIdFromParams];
   }
 

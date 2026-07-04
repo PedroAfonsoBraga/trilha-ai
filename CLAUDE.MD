@@ -11,8 +11,8 @@ Nome: Trilha (definitivo).
 - Frontend: Next.js 14 (App Router) + Tailwind + shadcn/ui → Vercel
 - Backend: FastAPI (Python 3.11) → Railway
 - Banco: Supabase (PostgreSQL + pgvector + Auth + Storage)
-- IA: Gemini 3.1 Flash-Lite (Interactions API) via google-genai SDK
-- Embeddings: Voyage-3-lite
+- IA: DeepSeek V4 Flash (deepseek/deepseek-v4-flash) via OpenRouter (OpenAI-compatible, AsyncOpenAI SDK)
+- Embeddings: Voyage-4-large para documentos + Voyage-4-lite para queries (cutover controlado por EMBEDDING_MODEL_VERSION)
 - Pagamentos: Stripe (Checkout + Customer Portal + webhooks)
 - Email: Resend + React Email
 - Jobs: Inngest (serverless)
@@ -22,7 +22,7 @@ Nome: Trilha (definitivo).
 ## Regras obrigatórias
 - Async/await em todo o backend — sem código síncrono em rotas
 - Verificar subscription.status SEMPRE no backend, nunca no frontend
-- Usar Gemini Interactions API (`gemini-3.1-flash-lite`) em todas as chamadas com docs > 2k tokens
+- Usar Chat Completions API (`deepseek/deepseek-v4-flash`) via OpenRouter em todas as chamadas com docs > 2k tokens
 - RLS ativo em todas as tabelas Supabase desde a migration 001
 - Variáveis de ambiente: nunca hardcodar keys no código
 
@@ -36,9 +36,9 @@ private: sk_test_xxxx
 - Pro (R$39,90): tudo ilimitado + Concurso Assistant
 
 ## Sprint atual
-Sprint 6 — Troca DeepSeek → Gemini + TCC Assistant (concluído)
-Sprint 7 — Revisão Espaçada (concluído)
-Sprint 8 — Histórico + Progresso (próximo)
+Sprint 15 — Otimização de Custo (Voyage) + Performance de Upload (implementação concluída — gate pendente)
+Sprint 10 — Migração Parser PDF: PyMuPDF → LlamaParse (concluído)
+Sprint 12 — Pivô Estratégico: Foco exclusivo em Concursos Públicos (concluído — ver docs/sprints/sprint-12.md)
 
 ## Como iniciar cada sessão
 Leia docs/learnings/session-notes.md antes de qualquer tarefa.
