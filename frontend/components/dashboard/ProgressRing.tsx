@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 interface ProgressRingProps {
   percent: number;
   size?: number;

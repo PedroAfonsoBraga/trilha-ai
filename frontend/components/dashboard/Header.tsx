@@ -6,7 +6,6 @@ import { useState } from "react";
 
 interface HeaderProps {
   nome: string;
-  avatarUrl: string | null;
 }
 
 const pathLabels: Record<string, string> = {
@@ -44,7 +43,7 @@ function getCurrentPageLabel(pathname: string): string {
   return "Visão Geral";
 }
 
-export default function Header({ nome, avatarUrl }: HeaderProps) {
+export default function Header({ nome }: HeaderProps) {
   const pathname = usePathname();
   const currentPage = getCurrentPageLabel(pathname);
   const [showDropdown, setShowDropdown] = useState(false);

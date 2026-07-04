@@ -21,7 +21,6 @@ export default async function DashboardLayout({
 
   let nome = user.email?.split("@")[0] || "Usuário";
   let plano = "free";
-  let avatarUrl: string | null = null;
 
   if (session) {
     try {
@@ -46,7 +45,7 @@ export default async function DashboardLayout({
 
       {/* Coluna direita: Header + Conteúdo */}
       <div className="flex flex-1 flex-col overflow-hidden lg:ml-[240px]">
-        <Header nome={nome} avatarUrl={avatarUrl} />
+        <Header nome={nome} />
 
         {/* Área de conteúdo: children + right panel opcional */}
         <div className="flex flex-1 overflow-hidden">

@@ -16,7 +16,7 @@ import EmptyStates from "@/components/dashboard/EmptyStates";
 
 gsap.registerPlugin(ScrollTrigger);
 
-function getSaudacao(nome: string): string {
+function getSaudacao(): string {
   const hora = new Date().getHours();
   if (hora < 12) return "Bom dia";
   if (hora < 18) return "Boa tarde";
@@ -103,9 +103,9 @@ export default function DashboardContent({ data, error, nome }: DashboardContent
   }
 
   // ── Data ──
-  const { progresso_geral, streak, flashcards, edital_ativo, cronograma_hoje, disciplinas_risco, por_concurso } = data;
+  const { progresso_geral, streak, edital_ativo, cronograma_hoje, disciplinas_risco, por_concurso } = data;
 
-  const saudacao = `${getSaudacao(nome)}, ${nome.split(" ")[0]}. 👋`;
+  const saudacao = `${getSaudacao()}, ${nome.split(" ")[0]}. 👋`;
   const subtitle = getSubtitle(edital_ativo, streak);
 
   // Prepara dados para PesoDisciplinaList
