@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from datetime import date
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -209,7 +210,7 @@ def _try_parse_json(content: str) -> dict:
             raise ValueError(f"Não foi possível recuperar o JSON da resposta: {content[:200]}...")
 
 
-async def parse_edital_ia(texto: str) -> dict:
+async def parse_edital_ia(texto: str, user_id: Optional[str] = None) -> dict:
     from app.services.llm_client import generate_text
 
     input_text = texto[:120000]
@@ -217,8 +218,10 @@ async def parse_edital_ia(texto: str) -> dict:
     content = await generate_text(
         system_prompt=EDITAL_SYSTEM_PROMPT,
         user_text=f"Texto do edital:\n\n{input_text}",
+        feature="edital_parser",
         max_tokens=8192,
         temperature=0.3,
+        user_id=user_id,
     )
     return _try_parse_json(content)
 
@@ -268,10 +271,10 @@ async def parse_edital(texto: str) -> dict:
     banca_detectada = regex_result.get("banca", "indefinida")
 
     try:
-        from app.services.llm_client import GEMINI_API_KEY
+        from app.services.llm_client import OPENROUTER_API_KEY
 
-        if not GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY não configurada")
+        if not OPENROUTER_API_KEY:
+            raise ValueError("OPENROUTER_API_KEY não configurada")
         ia_result = await parse_edital_ia(texto)
         merged = {**regex_result, **ia_result}
         if banca_detectada != "indefinida" and ia_result.get("banca") == "indefinida":

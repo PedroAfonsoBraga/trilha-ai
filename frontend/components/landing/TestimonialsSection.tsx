@@ -5,9 +5,9 @@ import { gsap, useGSAP } from "@/lib/gsap/gsapConfig";
 import { useReducedMotion } from "@/lib/gsap/useReducedMotion";
 
 const testimonials = [
-  { initials: "PA", name: "P.A.", subtitle: "Aprovado AGU 2024", text: "Nunca pensei que montar um cronograma seria tão simples. Subi do edital ao plano de estudos em minutos." },
-  { initials: "MS", name: "M.S.", subtitle: "Concurseira, 3ª tentativa", text: "O fichamento em ABNT me salvou. Antes perdia 2h por PDF. Agora é upload e pronto." },
-  { initials: "RC", name: "R.C.", subtitle: "Estudante de Direito", text: "Uso para provas da faculdade também. Os flashcards são absurdamente bons." },
+  { initials: "PA", name: "P.A.", subtitle: "Aprovado AGU 2024", text: "Nunca pensei que organizar meu estudo seria tão simples. Colei o edital e em 2 minutos tinha tudo por semana." },
+  { initials: "MS", name: "M.S.", subtitle: "Concurseira, 3ª tentativa", text: "A análise da banca me mostrou onde eu estava desperdiçando tempo. Mudou minha forma de estudar." },
+  { initials: "RC", name: "R.C.", subtitle: "Aprovado PM-BA 2024", text: "O chat com as provas antigas é absurdo. Entendi o padrão da banca em uma tarde." },
 ];
 
 export function TestimonialsSection() {

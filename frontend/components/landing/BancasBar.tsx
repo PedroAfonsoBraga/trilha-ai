@@ -8,15 +8,11 @@ const bancas = [
   { sigla: "CESPE" },
   { sigla: "CEBRASPE" },
   { sigla: "FCC" },
-  { sigla: "Vunesp" },
+  { sigla: "VUNESP" },
   { sigla: "FGV" },
   { sigla: "IBFC" },
-  { sigla: "Fumarc" },
-  { sigla: "Idecan" },
-  { sigla: "AOCP" },
-  { sigla: "Quadrix" },
-  { sigla: "Consulplan" },
-  { sigla: "NUCEPE" },
+  { sigla: "IDECAN" },
+  { sigla: "FUNDEP" },
 ];
 
 export function BancasBar() {

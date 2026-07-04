@@ -94,7 +94,7 @@ async def search_library(body: dict, user: dict = Depends(get_current_user)):
 
     if len(chunks) > 5:
         try:
-            chunks = await search_service.rerank_chunks(query=query, chunks=chunks, top_k=5)
+            chunks = await search_service.rerank_chunks(query=query, chunks=chunks, top_k=5, user_id=user["id"])
         except Exception:
             pass
 
@@ -169,7 +169,11 @@ async def delete_document(doc_id: str, user: dict = Depends(get_current_user)):
         except Exception as e:
             logger.warning(f"Falha ao remover arquivo do storage: {e}")
 
+    # document_chunks tem ON DELETE CASCADE, mas flashcards, student_progress e shared_exports NAO
     supabase.table("document_chunks").delete().eq("document_id", doc_id).eq("user_id", user["id"]).execute()
+    supabase.table("flashcards").delete().eq("document_id", doc_id).eq("user_id", user["id"]).execute()
+    supabase.table("student_progress").delete().eq("document_id", doc_id).eq("user_id", user["id"]).execute()
+    supabase.table("shared_exports").delete().eq("document_id", doc_id).eq("user_id", user["id"]).execute()
     supabase.table("documents").delete().eq("id", doc_id).eq("user_id", user["id"]).execute()
 
     return {"status": "deleted", "id": doc_id}

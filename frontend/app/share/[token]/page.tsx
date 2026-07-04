@@ -43,7 +43,7 @@ export default async function SharePage({
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <div className="mb-6">
               <span className="text-xs font-medium text-slate-500 uppercase">
-                {data.export_type === "cronograma" ? "Cronograma" : data.export_type === "fichamento" ? "Fichamento" : "Flashcards"}
+                {data.export_type === "cronograma" ? "Cronograma" : "Flashcards"}
               </span>
               <h2 className="text-xl font-semibold text-slate-900 mt-1">{data.nome_original}</h2>
             </div>
@@ -74,11 +74,6 @@ export default async function SharePage({
               </pre>
             )}
 
-            {data.export_type === "fichamento" && typeof data.content === "object" && (
-              <pre className="whitespace-pre-wrap text-sm text-slate-700 bg-slate-50 rounded-lg p-4 overflow-auto max-h-96">
-                {JSON.stringify(data.content, null, 2)}
-              </pre>
-            )}
           </div>
         )}
 

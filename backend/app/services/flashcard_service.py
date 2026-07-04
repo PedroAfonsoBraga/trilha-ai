@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -65,7 +66,7 @@ def _try_parse_flashcards(content: str) -> list[dict]:
     raise ValueError(f"Formato inesperado de flashcards: {str(data)[:200]}")
 
 
-async def gerar_flashcards_ia(texto: str, max_cards: int = 20) -> list[dict]:
+async def gerar_flashcards_ia(texto: str, max_cards: int = 20, user_id: Optional[str] = None) -> list[dict]:
     from app.services.llm_client import generate_text
 
     input_text = texto[:120000]
@@ -73,8 +74,10 @@ async def gerar_flashcards_ia(texto: str, max_cards: int = 20) -> list[dict]:
     content = await generate_text(
         system_prompt=FLASHCARD_SYSTEM,
         user_text=f"Texto para criação de flashcards:\n\n{input_text}",
+        feature="flashcard",
         max_tokens=8192,
         temperature=0.5,
+        user_id=user_id,
     )
 
     flashcards = _try_parse_flashcards(content)

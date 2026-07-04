@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import LogoutButton from "./logout-button";
+import DashboardContent from "./dashboard-content";
+import RightPanel from "@/components/dashboard/RightPanel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -14,8 +15,28 @@ export default async function DashboardPage() {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  let perfil = "concurseiro";
+  let dashboardData = null;
+  let dashboardError: string | null = null;
+  let plano = "free";
+  let nome = user.email?.split("@")[0] || "Usuário";
+
   if (session) {
+    // Busca dados do dashboard
+    try {
+      const dashRes = await fetch(`${API_URL}/api/dashboard/`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      });
+      if (dashRes.ok) {
+        dashboardData = await dashRes.json();
+      } else {
+        dashboardError = `Erro ${dashRes.status}`;
+      }
+    } catch {
+      dashboardError = "Falha de conexão com o servidor";
+    }
+
+    // Busca perfil (nome + plano)
     try {
       const res = await fetch(`${API_URL}/api/profile`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -23,95 +44,30 @@ export default async function DashboardPage() {
       });
       if (res.ok) {
         const profile = await res.json();
-        perfil = profile.perfil || "concurseiro";
-        if (!profile.perfil) {
-          redirect("/dashboard/onboarding");
-        }
+        plano = profile.plano || "free";
+        nome = profile.nome || nome;
       }
     } catch {
-      // fallback
+      // fallback silencioso
     }
   }
 
-  const saudacao = {
-    concurseiro: "Sua jornada para aprovação começa aqui",
-    universitario: "Organize seus estudos da faculdade",
-    mestrando: "Aprofunde sua pesquisa acadêmica",
-  }[perfil] || "Sua jornada para aprovação começa aqui";
-
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Dashboard
-          </h1>
-          <LogoutButton />
-        </div>
-        <div className="mt-8 rounded-xl bg-white p-8 shadow-sm">
-          <p className="text-slate-600">
-            Bem-vindo, {user.email}!
-          </p>
-          <p className="text-slate-500 text-sm mt-1">{saudacao}</p>
-        </div>
+    <>
+      {/* Área principal do dashboard */}
+      <main className="flex-1 overflow-y-auto p-8">
+        <DashboardContent
+          data={dashboardData}
+          error={dashboardError}
+          nome={nome}
+        />
+      </main>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <a
-            href="/dashboard/concurso"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Concurso Assistant</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Faça upload de editais e gere cronogramas de estudo com IA.
-            </p>
-          </a>
-          <a
-            href="/dashboard/chat"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Chat com Documentos</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Converse com seus editais e PDFs — tire dúvidas com IA contextual.
-            </p>
-          </a>
-          <a
-            href="/dashboard/library"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Biblioteca</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Organize seus documentos com tags, busque por conteúdo e revise com inteligência.
-            </p>
-          </a>
-          <a
-            href="/dashboard/flashcards"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Revisão Espaçada</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Revise flashcards com o método SM-2, acompanhe seu desempenho e fixe o conteúdo.
-            </p>
-          </a>
-          <a
-            href="/dashboard/tcc"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">TCC Assistant</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Analise estrutura, revise clareza e verifique referências ABNT do seu TCC com IA.
-            </p>
-          </a>
-          <a
-            href="/dashboard/plano"
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Meu Plano</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Gerencie sua assinatura, veja seus limites de uso e faça upgrade.
-            </p>
-          </a>
-        </div>
-      </div>
-    </div>
+      {/* Painel lateral direito (apenas desktop >1280px) */}
+      <RightPanel
+        data={dashboardData}
+        plano={plano}
+      />
+    </>
   );
 }

@@ -1,11 +1,11 @@
 import json
 import logging
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 
-from app.services.embedding_service import gerar_embedding
+from app.services import embedding_service
 
 load_dotenv()
 
@@ -27,7 +27,8 @@ async def search_similar_chunks(
     user_id: str,
     top_k: int = 10,
 ) -> List[Dict]:
-    query_embedding = await gerar_embedding(query, input_type="query")
+    query_model = embedding_service.get_query_model()
+    query_embedding = await embedding_service.gerar_embedding(query, input_type="query", model=query_model)
 
     supabase = _get_supabase()
 
@@ -47,7 +48,7 @@ async def search_similar_chunks(
     return result.data or []
 
 
-async def rerank_chunks(query: str, chunks: List[Dict], top_k: int = 5) -> List[Dict]:
+async def rerank_chunks(query: str, chunks: List[Dict], top_k: int = 5, user_id: Optional[str] = None) -> List[Dict]:
     if not chunks:
         return []
 
@@ -69,8 +70,10 @@ async def rerank_chunks(query: str, chunks: List[Dict], top_k: int = 5) -> List[
     content = await generate_text(
         system_prompt=system_prompt,
         user_text=f"Query: {query}\n\nChunks:\n{chunk_texts}",
+        feature="search_rerank",
         max_tokens=256,
         temperature=0,
+        user_id=user_id,
     )
 
     try:

@@ -15,8 +15,6 @@ export interface DocumentMetadata {
   nome_original?: string;
   tamanho_bytes?: number;
   parsed?: ParsedEdital;
-  cronograma?: CronogramaItem[];
-  fichamento?: FichamentoData;
 }
 
 export interface ParsedEdital {
@@ -41,18 +39,54 @@ export interface Disciplina {
   nome: string;
   peso: number;
   num_questoes?: number | null;
+  topicos?: string[];
 }
 
-export interface CronogramaItem {
-  semana: number;
-  periodo: string;
+export interface ExtractedTopics {
+  edital_id: string;
+  disciplinas: Disciplina[];
+  extracted_at: string;
+  has_vague_topics: boolean;
+}
+
+export interface UserConfigCronograma {
+  dias_da_semana: number[];
+  horas_por_dia: number;
+  nivel_por_disciplina: Record<string, "fraco" | "medio" | "forte">;
+  reservar_revisao: boolean;
+  data_prova: string;
+}
+
+export interface TopicBlock {
+  id?: string;
   disciplina: string;
-  horas: number;
-  peso: number;
-  num_questoes?: number;
-  completed?: boolean;
-  modo?: string;
-  ajustado?: boolean;
+  topico: string;
+  duracao_min: number;
+  status: "pendente" | "concluido" | "pulado";
+}
+
+export interface DaySchedule {
+  date: string;
+  blocos: TopicBlock[];
+  total_minutos: number;
+}
+
+export interface CronogramaPorTopicos {
+  edital_id: string;
+  user_id: string;
+  semanas: DaySchedule[][];
+  gerado_em: string;
+  config: UserConfigCronograma;
+}
+
+export interface CronogramaConfig {
+  id?: string;
+  user_id: string;
+  edital_id: string;
+  dias_da_semana: number[];
+  horas_por_dia: number;
+  reservar_revisao: boolean;
+  nivel_disciplinas: Record<string, string>;
 }
 
 export interface ProgressItem {
@@ -82,17 +116,6 @@ export interface NotificationPreferences {
   resumo_semanal: boolean;
 }
 
-export interface FichamentoData {
-  referencia: string;
-  tema: string;
-  objetivo: string;
-  metodologia: string;
-  principais_pontos: string[];
-  citacoes_relevantes: string[];
-  conclusao: string;
-  comentarios: string;
-}
-
 export interface Flashcard {
   id: string;
   user_id: string;
@@ -114,7 +137,7 @@ export interface ShareLink {
 }
 
 export interface SharedContent {
-  export_type: "cronograma" | "fichamento" | "flashcards";
+  export_type: "cronograma" | "flashcards";
   nome_original: string;
   content: unknown;
 }
@@ -245,60 +268,140 @@ export interface SubscriptionInfo {
   has_portal: boolean;
 }
 
-export interface TccSection {
-  titulo: string;
+// ──────────────────────────────────────────────
+//  Dashboard — Sprint 8
+// ──────────────────────────────────────────────
+
+export interface DashboardProgressoGeral {
+  total_documentos: number;
+  total_disciplinas: number;
+  itens_completados: number;
+  total_itens: number;
+  taxa_conclusao: number;
+  horas_estudadas: number;
+}
+
+export interface DashboardStreak {
+  dias_consecutivos: number;
+  ultimo_dia: string | null;
+  maximo_historico: number;
+}
+
+export interface DashboardFlashcards {
+  pendentes: number;
+  revisados_hoje: number;
+  total_cards: number;
+  taxa_acerto: number;
+}
+
+export interface DashboardPrazo {
+  evento: string;
+  data: string;
+  dias_restantes: number;
+}
+
+export interface DashboardUrgencia {
+  ativo: boolean;
+  cards_atrasados: number;
+  proximo_prazo: DashboardPrazo | null;
+}
+
+export interface DashboardPorConcurso {
+  documento_id: string;
+  nome: string;
   tipo: string;
-  pagina_estimada: number | null;
-  completude: string;
-  sugestoes: string[];
+  progresso: number;
+  total_horas: number;
+  total_disciplinas: number;
 }
 
-export interface TccAnalysis {
-  secoes: TccSection[];
-  estrutura_geral: string;
-  secoes_ausentes: string[];
-  recomendacoes_estrutura: string[];
+// ──────────────────────────────────────────────
+//  Dashboard — Sprint 13 (novos campos)
+// ──────────────────────────────────────────────
+
+export interface DashboardEditalAtivo {
+  documento_id: string;
+  nome: string;
+  orgao: string;
+  banca: string;
+  cargo: string;
+  data_prova: string | null;
+  dias_restantes: number | null;
+  progresso_geral: number;
+  total_disciplinas: number;
+  disciplinas_concluidas: number;
 }
 
-export interface TccReviewIssue {
-  trecho: string;
-  tipo: string;
-  gravidade: string;
-  sugestao_generica: string;
+export interface DashboardCronogramaItem {
+  disciplina: string;
+  topico?: string;
+  horas_sugeridas: number;
+  progresso_pct: number;
+  status: "em_dia" | "atrasado" | "critico" | "a_iniciar" | "pendente" | "concluido" | "pulado";
+  dot_color: string;
+  banca?: string;
+  document_id?: string;
 }
 
-export interface TccReview {
-  problemas: TccReviewIssue[];
-  resumo_geral: string;
-  pontos_fortes: string[];
+export interface DashboardCronogramaHoje {
+  dia: string;
+  items: DashboardCronogramaItem[];
+  mensagem?: string;
 }
 
-export interface TccReferenceElementos {
-  autor: string;
-  titulo: string;
-  edicao: string;
-  local: string;
-  editora: string;
-  ano: string;
+export interface DashboardDisciplinaRisco {
+  disciplina: string;
+  nivel: "critico" | "atencao";
+  mensagem: string;
+  peso_pct: number;
+  progresso_pct: number;
+  dias_sem_estudo: number | null;
 }
 
-export interface TccReference {
-  texto_extraido: string;
-  elementos_obrigatorios: TccReferenceElementos;
-  conforme_abnt: boolean;
-  problemas: string[];
-  sugestao_correcao: string;
+export interface DashboardAtividadeItem {
+  tipo: "estudo" | "upload" | "revisao";
+  descricao: string;
+  data_iso: string;
+  data_relativa: string;
 }
 
-export interface TccReferences {
-  referencias: TccReference[];
-  total_referencias: number;
-  conformidade_geral: number;
-  recomendacoes: string[];
+export interface DashboardData {
+  progresso_geral: DashboardProgressoGeral | null;
+  streak: DashboardStreak | null;
+  flashcards: DashboardFlashcards | null;
+  urgencia: DashboardUrgencia | null;
+  por_concurso: DashboardPorConcurso[] | null;
+  edital_ativo: DashboardEditalAtivo | null;
+  cronograma_hoje: DashboardCronogramaHoje | null;
+  disciplinas_risco: DashboardDisciplinaRisco[] | null;
+  atividade_recente: DashboardAtividadeItem[] | null;
 }
 
-export interface TccReport {
-  estrutura: TccAnalysis;
-  revisao: TccReview;
-  referencias: TccReferences;
+// ──────────────────────────────────────────────
+//  Custos de IA — Sprint 9
+// ──────────────────────────────────────────────
+
+export interface CostFeatureBreakdown {
+  chamadas: number;
+  input_tokens: number;
+  output_tokens: number;
+  custo_usd: number;
+}
+
+export interface CostModelBreakdown {
+  chamadas: number;
+  custo_usd: number;
+}
+
+export interface UserCostSummary {
+  periodo: { inicio: string; fim: string };
+  total_chamadas: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_custo_usd: number;
+  total_custo_brl: number;
+  por_feature: Record<string, CostFeatureBreakdown>;
+  por_modelo: Record<string, CostModelBreakdown>;
+  orcamento_mensal_usd: number;
+  dentro_do_orcamento: boolean;
 }

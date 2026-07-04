@@ -6,11 +6,26 @@ import { useReducedMotion } from "@/lib/gsap/useReducedMotion";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 const faqs = [
-  { q: "Funciona com qualquer edital?", a: "Sim. A Trilha funciona com qualquer edital em PDF. Nossa IA analisa automaticamente a estrutura e conteúdo, independentemente da banca ou formato. Já testamos com editais do CESPE, FCC, Vunesp, FGV e IBFC." },
-  { q: "O .apkg abre mesmo no Anki oficial?", a: "Sim. Geramos arquivos .apkg compatíveis com o Anki Desktop (Windows, Mac, Linux) e com o AnkiDroid. É só baixar e abrir — seus flashcards já vêm configurados com revisão espaçada SM-2." },
-  { q: "Posso cancelar quando quiser?", a: "Pode sim. Não tem fidelidade nem contrato. Você pode cancelar a qualquer momento direto no Customer Portal do Stripe. Ao cancelar, você mantém o acesso até o fim do período pago." },
-  { q: "É diferente de só usar o ChatGPT?", a: "Totalmente. O ChatGPT é um chatbot genérico. A Trilha é uma plataforma especializada que: (1) entende o padrão específico de cada banca de concurso, (2) gera arquivos reais (.docx, .ics, .apkg), e (3) formata tudo automaticamente sem você precisar escrever prompts complexos." },
-  { q: "Meus documentos ficam salvos?", a: "Sim. Todos os seus editais, cronogramas, fichamentos e flashcards ficam salvos na sua conta. Você pode acessar e baixar novamente quando quiser. Seus dados são protegidos com criptografia e RLS (Row Level Security)." },
+  {
+    q: "Funciona com qualquer edital?",
+    a: "Sim. Basta enviar o PDF ou colar o link. A Trilha identifica automaticamente a banca e as disciplinas.",
+  },
+  {
+    q: "Funciona para qualquer tipo de concurso?",
+    a: "Sim — federal, estadual, municipal, policial, fiscal. Se tem edital, a Trilha organiza.",
+  },
+  {
+    q: "O cronograma se adapta se eu perder um dia de estudo?",
+    a: "Sim. Se você não cumprir o plano do dia, a Trilha redistribui automaticamente os tópicos restantes.",
+  },
+  {
+    q: "O chat com provas antigas entende questões de qualquer banca?",
+    a: "Sim. Você sobe o PDF da prova e discute questões e teoria diretamente. Funciona com qualquer banca.",
+  },
+  {
+    q: "Posso cancelar quando quiser?",
+    a: "Sim. Sem multa, sem burocracia. Cancela em um clique direto no portal do cliente.",
+  },
 ];
 
 export function FAQSection() {

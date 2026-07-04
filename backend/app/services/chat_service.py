@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from app.services.search_service import search_similar_chunks, rerank_chunks
 from app.services import chunking_service, embedding_service
-from app.services.llm_client import _get_client
+from app.services.llm_client import generate_text_stream, DEFAULT_MODEL
 
 load_dotenv()
 
@@ -26,16 +26,7 @@ NÃO invente informações. Seja conciso e direto.
 Contexto dos documentos:
 {contexto}"""
 
-RAG_SYSTEM_PROMPT_TCC = """Você é o TCC Assistant do Trilha, um assistente acadêmico especializado em trabalhos de conclusão de curso.
-Use APENAS o contexto fornecido abaixo (trechos de documentos do usuário) para responder.
-Se a informação não estiver no contexto, diga "Não encontrei essa informação nos seus documentos."
-NÃO invente informações. Seja conciso e direto.
-NUNCA escreva ou reescreva trechos do TCC do aluno — apenas oriente, sugira melhorias e aponte problemas.
-
-Contexto dos documentos:
-{contexto}"""
-
-RAG_SYSTEM_PROMPT_GENERICO = """Você é o Assistente do Trilha, um assistente de estudos especializado em analisar documentos acadêmicos e de concurso.
+RAG_SYSTEM_PROMPT_GENERICO = """Você é o Assistente do Trilha, um assistente especializado em concursos públicos brasileiros e análise de documentos de estudo.
 Use APENAS o contexto fornecido abaixo (trechos de documentos do usuário) para responder.
 Se a informação não estiver no contexto, diga "Não encontrei essa informação nos seus documentos."
 NÃO invente informações. Seja conciso e direto.
@@ -45,7 +36,7 @@ Contexto dos documentos:
 
 
 # Cache de tipos de documento por sessão — evita query repetida a cada turno
-# Formato: {session_id: ["tcc", "edital", ...]}
+# Formato: {session_id: ["edital", "pdf_generico", ...]}
 _doc_types_cache: Dict[str, List[str]] = {}
 _DOC_TYPES_CACHE_MAX = 1000
 
@@ -85,7 +76,7 @@ async def _ensure_documents_chunked(
 
         doc = (
             supabase.table("documents")
-            .select("id, texto_extraido")
+            .select("id, texto_extraido, tipo, metadata, markdown_text")
             .eq("id", doc_id)
             .eq("user_id", user_id)
             .limit(1)
@@ -94,17 +85,23 @@ async def _ensure_documents_chunked(
         if not doc.data:
             continue
 
-        texto = doc.data[0].get("texto_extraido")
+        doc_data = doc.data[0]
+        metadata = doc_data.get("metadata") or {}
+
+        # Prefere Markdown estruturado (LlamaParse) para chunking
+        texto = metadata.get("markdown_text") or doc_data.get("markdown_text") or doc_data.get("texto_extraido")
         if not texto:
             continue
 
-        chunks = chunking_service.chunk_semantico(texto)
+        doc_type = doc_data.get("tipo", "pdf_generico")
+        chunks = chunking_service.chunk_by_type(texto, doc_type)
         if not chunks:
             continue
 
         texts = [c.content for c in chunks]
+        doc_model = embedding_service.get_doc_model()
         try:
-            embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document")
+            embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document", model=doc_model)
         except Exception as e:
             logger.error(f"Falha ao gerar embeddings para doc {doc_id}: {e}")
             continue
@@ -118,6 +115,7 @@ async def _ensure_documents_chunked(
                     "content": chunk.content,
                     "token_count": chunk.token_count,
                     "embedding": embeddings[i],
+                    "embedding_model": doc_model,
                 }).execute()
                 chunks_created += 1
 
@@ -166,15 +164,17 @@ def _select_system_prompt(document_types: List[str]) -> str:
     Seleciona o system prompt adequado com base nos tipos de documento.
 
     Prioridades:
-    1. TCC — usa prompt acadêmico com orientação ética (nunca reescrever)
-    2. Edital — usa prompt de concurso público
-    3. Genérico — fallback para outros tipos de documento
+    1. Edital — usa prompt de concurso público
+    2. Genérico — fallback para outros tipos de documento
     """
-    if "tcc" in document_types:
-        return RAG_SYSTEM_PROMPT_TCC
     if "edital" in document_types:
         return RAG_SYSTEM_PROMPT_CONCURSO
     return RAG_SYSTEM_PROMPT_GENERICO
+
+
+def _estimar_tokens(texto: str) -> int:
+    """Estimativa simples de tokens: palavras * 1.3 (média pt-BR)."""
+    return int(len(texto.split()) * 1.3)
 
 
 async def chat_stream_response(
@@ -259,24 +259,16 @@ async def chat_stream_response(
     yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
 
     full_response = ""
-    client = _get_client().aio
-    stream = await client.interactions.create(
-        model="gemini-3.1-flash-lite",
-        input=user_msg,
-        system_instruction=system_content,
-        generation_config={
-            "max_output_tokens": 8192,
-            "temperature": 0.5,
-        },
-        stream=True,
-        store=True,
-    )
-    async for event in stream:
-        if event.event_type == "step.delta" and event.delta.type == "text":
-            content = event.delta.text
-            if content:
-                full_response += content
-                yield f"data: {json.dumps({'type': 'chunk', 'content': content})}\n\n"
+    async for delta in generate_text_stream(
+        system_prompt=system_content,
+        user_text=user_msg,
+        feature="chat",
+        model=DEFAULT_MODEL,
+        temperature=0.5,
+        user_id=user_id,
+    ):
+        full_response += delta
+        yield f"data: {json.dumps({'type': 'chunk', 'content': delta})}\n\n"
 
     await asyncio.to_thread(
         lambda: (

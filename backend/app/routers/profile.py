@@ -48,8 +48,8 @@ async def get_profile(user: dict = Depends(get_current_user)):
 
 @router.patch("")
 async def update_profile(payload: ProfileUpdate, user: dict = Depends(get_current_user)):
-    if payload.perfil and payload.perfil not in ("concurseiro", "universitario", "mestrando"):
-        raise HTTPException(status_code=400, detail="Perfil deve ser: concurseiro, universitario ou mestrando")
+    if payload.perfil and payload.perfil not in ("concurseiro",):
+        raise HTTPException(status_code=400, detail="Perfil deve ser: concurseiro")
 
     update_data = {}
     if payload.nome is not None:
@@ -76,11 +76,9 @@ async def update_profile(payload: ProfileUpdate, user: dict = Depends(get_curren
 
 
 FREE_LIMITS = {
-    "edital": 3,
-    "pdf": 3,
+    "edital": 2,
+    "pdf": 1,
     "flashcard": 5,
-    "fichamento": 3,
-    "tcc": 1,
 }
 
 

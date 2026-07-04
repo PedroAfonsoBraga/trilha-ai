@@ -13,9 +13,48 @@ interface Plan {
 }
 
 const plans: Plan[] = [
-  { nome: "Free", precoMensal: 0, precoAnual: 0, descricao: "Para começar", features: ["3 editais/mês", "5 PDFs/mês", "5 flashcards por PDF", "Export .ics e .docx"], priceIdMensal: null, priceIdAnual: null, destaque: false },
-  { nome: "Estudante", precoMensal: 19.9, precoAnual: 199.9, descricao: "Para concurseiros dedicados", features: ["Tudo ilimitado", "Todos os exports", "Suporte por email"], priceIdMensal: process.env.NEXT_PUBLIC_STRIPE_ESTUDANTE_PRICE_ID ?? "price_1TeSV1JcyDCmwkxi6MP6xscY", priceIdAnual: process.env.NEXT_PUBLIC_STRIPE_ESTUDANTE_ANUAL_PRICE_ID ?? "price_1Tf8krJcyDCmwkxiXWDOxCde", destaque: true },
-  { nome: "Pro", precoMensal: 39.9, precoAnual: 399.9, descricao: "Tudo incluso", features: ["Tudo do Estudante", "Concurso Assistant (chat com edital)", "Revisão espaçada integrada", "Prioridade no suporte"], priceIdMensal: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? "price_1TeSV4JcyDCmwkxiIXNSXx4X", priceIdAnual: process.env.NEXT_PUBLIC_STRIPE_PRO_ANUAL_PRICE_ID ?? "price_1Tf8ktJcyDCmwkxieFJNkRfj", destaque: false },
+  {
+    nome: "Free", precoMensal: 0, precoAnual: 0, descricao: "Para começar",
+    features: [
+      "2 editais por mês",
+      "Cronograma automático",
+      "Export Google Calendar",
+      "Identificação de banca",
+      "Contagem regressiva",
+      "1 prova antiga + 10 msgs/mês",
+    ],
+    priceIdMensal: null, priceIdAnual: null, destaque: false,
+  },
+  {
+    nome: "Estudante", precoMensal: 19.9, precoAnual: 199, descricao: "Para concurseiros dedicados",
+    features: [
+      "Tudo do Free ilimitado",
+      "Upload ilimitado de editais",
+      "Provas antigas ilimitadas",
+      "Chat ilimitado com provas",
+      "Dashboard de progresso",
+      "Redistribuição automática",
+      "Suporte por email",
+    ],
+    priceIdMensal: process.env.NEXT_PUBLIC_STRIPE_ESTUDANTE_PRICE_ID ?? "price_1TeSV1JcyDCmwkxi6MP6xscY",
+    priceIdAnual: process.env.NEXT_PUBLIC_STRIPE_ESTUDANTE_ANUAL_PRICE_ID ?? "price_1Tf8krJcyDCmwkxiXWDOxCde",
+    destaque: true,
+  },
+  {
+    nome: "Pro", precoMensal: 39.9, precoAnual: 399, descricao: "Tudo incluso",
+    features: [
+      "Tudo do Estudante",
+      "Concurso Assistant (chat direto)",
+      "Análise de padrão da banca",
+      "Cruzamento prova x edital",
+      "Modo véspera",
+      "Análise de risco por disciplina",
+      "Suporte prioritário",
+    ],
+    priceIdMensal: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? "price_1TeSV4JcyDCmwkxiIXNSXx4X",
+    priceIdAnual: process.env.NEXT_PUBLIC_STRIPE_PRO_ANUAL_PRICE_ID ?? "price_1Tf8ktJcyDCmwkxieFJNkRfj",
+    destaque: false,
+  },
 ];
 
 export function PricingSection() {
@@ -52,7 +91,7 @@ export function PricingSection() {
         <div className="mt-8 flex items-center justify-center">
           <div className="inline-flex rounded-lg border border-border bg-muted p-1">
             <button onClick={() => setAnual(false)} className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${!anual ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Mensal</button>
-            <button onClick={() => setAnual(true)} className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${anual ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Anual</button>
+            <button onClick={() => setAnual(true)} className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${anual ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Anual — economize 2 meses</button>
           </div>
         </div>
         <div ref={cardsRef} className="mt-12 flex gap-8 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 md:grid md:grid-cols-3 md:overflow-visible md:pb-0 md:mx-0 md:px-0 md:snap-none">
@@ -60,7 +99,7 @@ export function PricingSection() {
             <div key={plan.nome} ref={(el) => { cardRefs.current[i] = el; }} className={`relative shrink-0 w-[85vw] max-w-[380px] snap-center rounded-xl border p-8 md:w-auto md:max-w-none md:shrink md:snap-none ${plan.destaque ? "border-primary bg-card shadow-lg ring-1 ring-primary" : "border-border bg-card"}`}>
               {plan.destaque && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-semibold text-primary-foreground">Mais popular</span>}
               <h3 className="text-lg font-semibold text-foreground">{plan.nome}</h3>
-              <div className="mt-3 flex items-baseline gap-1"><span className="text-4xl font-bold text-foreground">{display(plan)}</span>{plan.precoMensal > 0 && <span className="text-sm text-muted-foreground">/mes</span>}</div>
+              <div className="mt-3 flex items-baseline gap-1"><span className="text-4xl font-bold text-foreground">{display(plan)}</span>{plan.precoMensal > 0 && <span className="text-sm text-muted-foreground">/mês</span>}</div>
               {anual && plan.precoMensal > 0 && <p className="mt-1 text-xs text-muted-foreground">{fmt(plan.precoAnual)} cobrado anualmente</p>}
               <p className="mt-2 text-sm text-muted-foreground">{plan.descricao}</p>
               <ul className="mt-6 space-y-3">{plan.features.map((f) => (<li key={f} className="flex items-center gap-2 text-sm text-foreground"><Check className="h-4 w-4 shrink-0 text-primary" />{f}</li>))}</ul>

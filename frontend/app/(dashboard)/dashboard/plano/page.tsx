@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import PlanoClient from "./plano-client";
+import DeleteAccountButton from "@/components/app/delete-account-button";
 import type { PlanUsage, SubscriptionInfo } from "@/types/documents";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -69,6 +70,13 @@ export default async function PlanoPage() {
           apiUrl={API_URL}
           priceIds={PRICE_IDS}
         />
+
+        <div className="mt-10">
+          <DeleteAccountButton
+            accessToken={accessToken}
+            userEmail={user.email || ""}
+          />
+        </div>
       </div>
     </div>
   );

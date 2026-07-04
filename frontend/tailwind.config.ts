@@ -8,6 +8,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-satoshi)", "system-ui", "sans-serif"],
+        heading: ["var(--font-cabinet)", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -45,6 +50,15 @@ const config: Config = {
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-bg))",
+          text: "hsl(var(--sidebar-text))",
+          active: "hsl(var(--sidebar-active))",
         },
       },
       borderRadius: {

@@ -13,7 +13,10 @@ frontend/
 │   ├── (dashboard)/     ← área logada
 │   │   ├── concurso/    ← Concurso Assistant
 │   │   ├── flashcards/  ← geração e revisão
-│   │   └── fichamento/  ← fichamento ABNT
+│   │   ├── library/     ← biblioteca com busca semântica
+│   │   ├── plano/       ← gerenciamento de assinatura
+│   │   ├── custos/      ← custos de IA
+│   │   └── chat/        ← chat RAG com documentos
 │   ├── (marketing)/     ← landing, preços, sobre
 │   └── api/             ← route handlers (apenas webhooks e auth callbacks)
 ├── components/

@@ -6,11 +6,11 @@ import { gsap, useGSAP } from "@/lib/gsap/gsapConfig";
 import { useReducedMotion } from "@/lib/gsap/useReducedMotion";
 
 const rows = [
-  { label: "Especialista em concursos", generic: "Responde qualquer coisa, mal", trilha: "Foco total em concurso público" },
-  { label: "Formatação automática", generic: "Você formata tudo", trilha: "ABNT, .docx, .apkg gerados" },
-  { label: "Reconhece sua banca", generic: "Não conhece sua banca", trilha: "Reconhece CESPE, FCC, Vunesp" },
-  { label: "Exportação real", generic: "Sem exportação real", trilha: "Arquivos prontos para usar" },
-  { label: "Preço", generic: "R$100+/mês", trilha: "A partir de R$19,90" },
+  { label: "Conhece seu edital", generic: "Não conhece seu edital", trilha: "Lê e interpreta seu edital" },
+  { label: "Padrão da banca", generic: "Não sabe o padrão da banca", trilha: "Reconhece CESPE, FCC, Vunesp e mais" },
+  { label: "Cronograma", generic: "Sem cronograma personalizado", trilha: "Cronograma automático por peso e data" },
+  { label: "Acompanhamento", generic: "Você faz tudo manualmente", trilha: "Acompanhamento até o dia da prova" },
+  { label: "Preço", generic: "R$100+/mês", trilha: "A partir de R$19,90/mês" },
 ];
 
 export function ComparisonSection() {
@@ -29,8 +29,7 @@ export function ComparisonSection() {
   return (
     <section ref={sectionRef} className="px-4 py-20 md:py-28">
       <div className="mx-auto max-w-4xl">
-        <h2 ref={titleRef} className="text-center text-3xl font-bold text-foreground md:text-4xl">Não somos o ChatGPT</h2>
-        <p className="mt-4 text-center text-muted-foreground">Comparação honesta entre usar uma IA genérica e a Trilha</p>
+        <h2 ref={titleRef} className="text-center text-3xl font-bold text-foreground md:text-4xl">Não somos um chatbot genérico.</h2>
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <div ref={colLeftRef} className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-2 mb-6"><h3 className="text-lg font-semibold text-foreground">ChatGPT / IA Genérica</h3></div>

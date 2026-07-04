@@ -28,8 +28,8 @@ async def create_share_link(
     export_type: str,
     user: dict = Depends(get_current_user),
 ):
-    if export_type not in ("cronograma", "fichamento", "flashcards"):
-        raise HTTPException(status_code=400, detail="Tipo de export inválido. Use: cronograma, fichamento, flashcards")
+    if export_type not in ("cronograma", "flashcards"):
+        raise HTTPException(status_code=400, detail="Tipo de export inválido. Use: cronograma ou flashcards")
 
     supabase = get_admin_supabase()
 

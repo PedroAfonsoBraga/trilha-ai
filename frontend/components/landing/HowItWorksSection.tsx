@@ -1,28 +1,28 @@
 "use client";
 
 import { useRef } from "react";
-import { FileUp, ScanSearch, Download } from "lucide-react";
+import { FileUp, ScanSearch, Compass } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap/gsapConfig";
 import { useReducedMotion } from "@/lib/gsap/useReducedMotion";
 
 const steps = [
   {
     number: 1,
-    title: "Envie o edital em PDF",
-    desc: "Faça upload do edital em PDF. A Trilha extrai todo o conteúdo automaticamente, inclusive de scans.",
+    title: "Envie o edital",
+    desc: "Cole o link ou faça upload do PDF. Qualquer edital, qualquer banca.",
     icon: FileUp,
   },
   {
     number: 2,
-    title: "A Trilha analisa banca, disciplinas e pesos",
-    desc: "Nossa IA reconhece o padrão da banca (CESPE, FCC, Vunesp) e estrutura as disciplinas com pesos reais.",
+    title: "A Trilha analisa",
+    desc: "Identificamos banca, disciplinas, pesos e datas automaticamente.",
     icon: ScanSearch,
   },
   {
     number: 3,
-    title: "Baixe seu cronograma, fichamento e flashcards",
-    desc: "Exporte .ics para Google Calendar, .docx em ABNT e .apkg para o Anki. Tudo pronto para usar.",
-    icon: Download,
+    title: "Siga o GPS",
+    desc: "Cronograma personalizado, acompanhamento de progresso e guia até a prova.",
+    icon: Compass,
   },
 ];
 
@@ -31,7 +31,6 @@ export function HowItWorksSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const stepsRef = useRef<HTMLDivElement>(null);
-  const mockupRef = useRef<HTMLDivElement>(null);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
 
   useGSAP(
@@ -71,20 +70,6 @@ export function HowItWorksSection() {
           scale: 0.9,
           duration: 0.4,
           stagger: 0.4,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 70%",
-            once: true,
-          },
-        });
-      }
-      if (mockupRef.current) {
-        gsap.from(mockupRef.current, {
-          opacity: 0,
-          y: 20,
-          duration: 0.6,
-          delay: 0.6,
           ease: "power2.out",
           scrollTrigger: {
             trigger: sectionRef.current,
@@ -152,38 +137,6 @@ export function HowItWorksSection() {
               )}
             </div>
           ))}
-        </div>
-        <div
-          ref={mockupRef}
-          className="mx-auto mt-16 max-w-2xl overflow-hidden rounded-xl border border-border bg-card shadow-sm"
-        >
-          <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2">
-            <div className="h-3 w-3 rounded-full bg-red-400" />
-            <div className="h-3 w-3 rounded-full bg-yellow-400" />
-            <div className="h-3 w-3 rounded-full bg-green-400" />
-            <span className="ml-2 text-xs text-muted-foreground">
-              app.trilha.ai
-            </span>
-          </div>
-          <div className="p-6">
-            <div className="mb-4 h-4 w-3/4 rounded-full bg-muted" />
-            <div className="mb-3 h-4 w-1/2 rounded-full bg-muted" />
-            <div className="mb-6 h-4 w-5/6 rounded-full bg-muted" />
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-lg border border-border bg-muted/50 p-3">
-                <div className="mb-2 h-3 w-2/3 rounded-full bg-primary/30" />
-                <div className="h-3 w-full rounded-full bg-muted" />
-              </div>
-              <div className="rounded-lg border border-border bg-muted/50 p-3">
-                <div className="mb-2 h-3 w-2/3 rounded-full bg-primary/30" />
-                <div className="h-3 w-full rounded-full bg-muted" />
-              </div>
-              <div className="rounded-lg border border-border bg-muted/50 p-3">
-                <div className="mb-2 h-3 w-2/3 rounded-full bg-primary/30" />
-                <div className="h-3 w-full rounded-full bg-muted" />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

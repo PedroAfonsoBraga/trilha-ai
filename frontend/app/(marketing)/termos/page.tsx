@@ -6,43 +6,44 @@ export default function TermosPage() {
           Termos de Uso
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Última atualizacao: Junho de 2025
+          Última atualização: Junho de 2026
         </p>
 
         <div className="mt-12 space-y-10 text-foreground">
           <section>
-            <h2 className="text-xl font-semibold">1. Aceitacao dos Termos</h2>
+            <h2 className="text-xl font-semibold">1. Aceitação dos Termos</h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Ao acessar e usar a Trilha, voce concorda com estes Termos de Uso.
-              Se voce nao concordar com qualquer parte destes termos, nao utilize
-              nossos servicos.
+              Ao acessar e usar a Trilha, você concorda com estes Termos de Uso.
+              Se você não concordar com qualquer parte destes termos, não utilize
+              nossos serviços.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold">2. Descricao do Servico</h2>
+            <h2 className="text-xl font-semibold">2. Descrição do Serviço</h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              A Trilha e uma plataforma SaaS educacional que utiliza inteligencia
-              artificial para processar editais de concursos publicos, gerar
-              cronogramas de estudo, fichamentos academicos e flashcards.
+              A Trilha é uma plataforma SaaS educacional que utiliza inteligência
+              artificial (Google Gemini com modelo Gemma 4 26B via Generate Content API) para
+              processar editais de concursos públicos, gerar cronogramas de estudo
+              personalizados e flashcards inteligentes.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold">3. Planos e Cobranca</h2>
+            <h2 className="text-xl font-semibold">3. Planos e Cobrança</h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Oferecemos planos gratuitos e pagos. Os valores sao exibidos
-              claramente na pagina de precos. A cobranca dos planos pagos e
-              recorrente e processada pelo Stripe. Voce pode cancelar a qualquer
-              momento atraves do portal do cliente.
+              Oferecemos planos gratuitos e pagos. Os valores são exibidos
+              claramente na página de preços. A cobrança dos planos pagos é
+              recorrente e processada pelo Stripe. Você pode cancelar a qualquer
+              momento através do portal do cliente.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold">4. Uso Aceitavel</h2>
+            <h2 className="text-xl font-semibold">4. Uso Aceitável</h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Voce concorda em nao utilizar a plataforma para fins ilegais, para
-              violar direitos de terceiros, ou para distribuir conteudo malicioso.
+              Você concorda em não utilizar a plataforma para fins ilegais, para
+              violar direitos de terceiros, ou para distribuir conteúdo malicioso.
               Reservamo-nos o direito de suspender contas que violarem estes
               termos.
             </p>
@@ -53,37 +54,79 @@ export default function TermosPage() {
               5. Propriedade Intelectual
             </h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              A plataforma Trilha, seu codigo-fonte, design e marca sao de nossa
-              propriedade. O conteudo gerado pela IA a partir dos seus editais
-              pertence a voce.
+              A plataforma Trilha, seu código-fonte, design e marca são de nossa
+              propriedade. O conteúdo gerado pela IA a partir dos seus documentos
+              pertence a você.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold">
-              6. Limitacao de Responsabilidade
+              6. Limitação de Responsabilidade
             </h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              A Trilha e fornecida &quot;como esta&quot;. Nao garantimos que o
-              servico sera ininterrupto ou livre de erros. Nao nos
-              responsabilizamos por decisoes tomadas com base no conteudo gerado
+              A Trilha é fornecida &quot;como está&quot;. Não garantimos que o
+              serviço será ininterrupto ou livre de erros. Não nos
+              responsabilizamos por decisões tomadas com base no conteúdo gerado
               pela plataforma.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold">7. Modificacoes</h2>
+            <h2 className="text-xl font-semibold">
+              7. Inteligência Artificial e Cache
+            </h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Podemos atualizar estes termos periodicamente. Alteracoes
-              significativas serao comunicadas por email com no minimo 7 dias de
-              antecedencia.
+              Utilizamos IA generativa (Google Gemini com modelo Gemma 4 26B) para
+              processar seus documentos. Para otimizar custos e performance,
+              implementamos um sistema de cache que armazena temporariamente
+              outputs de IA já processados (como análises de editais e
+              flashcards). O cache expira automaticamente entre 1 hora e 7
+              dias dependendo do tipo de conteúdo. Chat em tempo real não é
+              armazenado em cache. O custo estimado de cada chamada de IA é
+              rastreado e associado à sua conta para fins de monitoramento.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold">8. Contato</h2>
+            <h2 className="text-xl font-semibold">
+              8. Monitoramento e Observabilidade
+            </h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Duvidas sobre estes termos? Entre em contato pelo email{" "}
+              Utilizamos ferramentas de monitoramento (Sentry e PostHog) para
+              identificar e corrigir erros, analisar padrões de uso e melhorar
+              a plataforma. Esses serviços coletam dados anonimizados de uso,
+              sem acesso ao conteúdo dos seus documentos.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold">9. Seus Direitos (LGPD)</h2>
+            <p className="mt-3 leading-relaxed text-muted-foreground">
+              De acordo com a Lei Geral de Proteção de Dados (LGPD), você tem
+              direito a acessar, corrigir e excluir seus dados pessoais a
+              qualquer momento. Disponibilizamos um endpoint automatizado de
+              exclusão total de dados (<code>DELETE /api/user</code>) que remove
+              todos os seus documentos, chunks, flashcards, progresso, logs de
+              IA e perfil da plataforma. Para exercer esses direitos, você pode
+              utilizar a opção &quot;Excluir conta&quot; na página Meu Plano ou
+              entrar em contato pelo email abaixo.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold">10. Modificações</h2>
+            <p className="mt-3 leading-relaxed text-muted-foreground">
+              Podemos atualizar estes termos periodicamente. Alterações
+              significativas serão comunicadas por email com no mínimo 7 dias de
+              antecedência.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold">11. Contato</h2>
+            <p className="mt-3 leading-relaxed text-muted-foreground">
+              Dúvidas sobre estes termos? Entre em contato pelo email{" "}
               <a
                 href="mailto:contato@trilha.ai"
                 className="text-primary hover:underline"
