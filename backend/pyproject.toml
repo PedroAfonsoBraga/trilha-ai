@@ -24,6 +24,7 @@ dependencies = [
     "sse-starlette>=3.4.4",
     "sentry-sdk[fastapi]>=2.63.0",
     "llama-parse>=0.6.94",
+    "prometheus-fastapi-instrumentator>=8.0.2",
 ]
 
 [project.optional-dependencies]

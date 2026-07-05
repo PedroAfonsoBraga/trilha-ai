@@ -17,6 +17,7 @@ const pathLabels: Record<string, string> = {
   "/dashboard/library": "Biblioteca",
   "/dashboard/plano": "Meu Plano",
   "/dashboard/custos": "Custos de IA",
+  "/dashboard/admin": "Painel Administrativo",
   "/dashboard/onboarding": "Onboarding",
 };
 

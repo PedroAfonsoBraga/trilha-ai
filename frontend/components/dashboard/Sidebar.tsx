@@ -11,11 +11,13 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  Shield,
 } from "lucide-react";
 
 interface SidebarProps {
   nome: string;
   plano: string;
+  isAdmin?: boolean;
 }
 
 interface NavItem {
@@ -38,6 +40,13 @@ const generalItems: NavItem[] = [
   { label: "Ajuda", href: "#", icon: <HelpCircle size={18} /> },
 ];
 
+const adminItem: NavItem = {
+  label: "Admin",
+  href: "/dashboard/admin",
+  icon: <Shield size={18} />,
+  badge: "Admin",
+};
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -56,10 +65,12 @@ function getPlanLabel(plano: string): string {
   }
 }
 
-export default function Sidebar({ nome, plano }: SidebarProps) {
+export default function Sidebar({ nome, plano, isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+
+  const navItems = isAdmin ? [...menuItems, adminItem] : menuItems;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -108,7 +119,7 @@ export default function Sidebar({ nome, plano }: SidebarProps) {
       <nav className="mt-6 flex-1 overflow-y-auto px-4" aria-label="Menu principal">
         <p className="label mb-2 px-2 text-[#475569]">MENU</p>
         <ul className="space-y-0.5">
-          {menuItems.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(item.href);
             return (
               <li key={item.label}>

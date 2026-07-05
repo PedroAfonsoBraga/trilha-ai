@@ -26,6 +26,27 @@ else:
 
 
 # ──────────────────────────────────────────────
+#  Prometheus /metrics (mock-aware por env)
+# ──────────────────────────────────────────────
+METRICS_ENABLED = os.getenv("METRICS_ENABLED", "true").lower() in ("1", "true", "yes")
+instrumentator = None
+if METRICS_ENABLED:
+    try:
+        from prometheus_fastapi_instrumentator import Instrumentator
+        instrumentator = Instrumentator(
+            should_group_status_codes=True,
+            should_ignore_untemplated=True,
+            excluded_handlers=["/api/health", "/metrics"],
+        )
+        print("[Prometheus] Instrumentador carregado")
+    except Exception as e:
+        print(f"[MOCK] Prometheus não disponível: {e}")
+        instrumentator = None
+else:
+    print("[MOCK] Métricas Prometheus desativadas via METRICS_ENABLED=false")
+
+
+# ──────────────────────────────────────────────
 #  Upload jobs — retomada após restart (Fase 6)
 # ──────────────────────────────────────────────
 def _mark_stale_upload_jobs_failed() -> None:
@@ -60,6 +81,25 @@ def _mark_stale_upload_jobs_failed() -> None:
             print(f"[upload-jobs] {affected} job(s) órfão(s) marcado(s) como failed")
     except Exception as e:
         print(f"[upload-jobs] Erro ao marcar jobs órfãos: {e}")
+
+
+# ──────────────────────────────────────────────
+#  Health check — verifica dependências críticas
+# ──────────────────────────────────────────────
+def _check_supabase() -> bool:
+    """Verifica conectividade mínima com o Supabase (query leve em profiles)."""
+    supabase_url = os.getenv("SUPABASE_URL", "")
+    service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not supabase_url or not service_key:
+        return False
+
+    try:
+        from supabase import create_client
+        supabase = create_client(supabase_url, service_key)
+        result = supabase.table("profiles").select("id").limit(1).execute()
+        return result.data is not None
+    except Exception:
+        return False
 
 from app.routers import (
     billing, documents, sharing, profile, notifications,
@@ -102,6 +142,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Prometheus — expõe /metrics se METRICS_ENABLED=true
+if instrumentator:
+    instrumentator.instrument(app).expose(app, endpoint="/metrics")
+    print("[Prometheus] Endpoint /metrics exposto")
+
 app.include_router(billing.router, prefix="/api/billing", tags=["billing"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(sharing.router, prefix="/api/share", tags=["sharing"])
@@ -118,4 +163,20 @@ app.include_router(cronograma.router, prefix="/api/cronograma", tags=["cronogram
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok"}
+    """Health check enriquecido — verifica dependências críticas.
+
+    Usado por uptime monitors (Better Stack, UptimeRobot) e pelo painel admin.
+    """
+    supabase_ok = _check_supabase()
+    status = "ok" if supabase_ok else "degraded"
+    code = 200 if supabase_ok else 503
+
+    return {
+        "status": status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "0.1.0",
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "checks": {
+            "supabase": supabase_ok,
+        },
+    }

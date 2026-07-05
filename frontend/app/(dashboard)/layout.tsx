@@ -21,6 +21,7 @@ export default async function DashboardLayout({
 
   let nome = user.email?.split("@")[0] || "Usuário";
   let plano = "free";
+  let isAdmin = false;
 
   if (session) {
     try {
@@ -36,12 +37,22 @@ export default async function DashboardLayout({
     } catch {
       // fallback silencioso
     }
+
+    try {
+      const adminRes = await fetch(`${API_URL}/api/admin/check`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      });
+      isAdmin = adminRes.ok;
+    } catch {
+      isAdmin = false;
+    }
   }
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
       {/* Sidebar — fixa à esquerda */}
-      <Sidebar nome={nome} plano={plano} />
+      <Sidebar nome={nome} plano={plano} isAdmin={isAdmin} />
 
       {/* Coluna direita: Header + Conteúdo */}
       <div className="flex flex-1 flex-col overflow-hidden lg:ml-[240px]">
