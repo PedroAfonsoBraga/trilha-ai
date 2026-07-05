@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -48,7 +48,7 @@ def extrair_datas(texto: str) -> list[dict]:
 
     iso_patterns = [
         (r"\d{2}/\d{2}/\d{4}", "%d/%m/%Y"),
-        (r"\d{2}/\d{2}/\d{2}", "%d/%m/%y"),
+        (r"\d{2}/\d{2}/\d{2}(?!\d)", "%d/%m/%y"),
         (r"\d{2}\.\d{2}\.\d{4}", "%d.%m.%Y"),
         (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d"),
     ]
@@ -56,7 +56,7 @@ def extrair_datas(texto: str) -> list[dict]:
     for pattern, fmt in iso_patterns:
         for match in re.finditer(pattern, texto):
             try:
-                d = date.strftime(date.strptime(match.group(), fmt), "%Y-%m-%d")
+                d = datetime.strptime(match.group(), fmt).strftime("%Y-%m-%d")
                 if d not in seen_dates:
                     seen_dates.add(d)
                     context_start = max(0, match.start() - 80)
