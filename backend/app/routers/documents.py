@@ -62,6 +62,7 @@ def _insert_chunks_from_cache(
             "user_id": user_id,
             "chunk_index": chunk.get("chunk_index", 0),
             "content": chunk.get("content", ""),
+            "section": chunk.get("section"),
             "token_count": chunk.get("token_count"),
             "embedding": chunk.get("embedding"),
             "embedding_model": embedding_model,
@@ -490,7 +491,7 @@ async def search_documents(body: dict, user: dict = Depends(get_current_user)):
     if not valid_ids:
         raise HTTPException(status_code=400, detail="Nenhum documento válido")
 
-    chunks = await search_service.search_similar_chunks(
+    chunks = await search_service.search_hybrid_chunks(
         query=query,
         document_ids=valid_ids,
         user_id=user["id"],
@@ -550,12 +551,12 @@ async def chunk_document(doc_id: str, user: dict = Depends(get_current_user)):
 
     for i, chunk in enumerate(chunks):
         if i < len(embeddings):
-            # O conteudo ja preserva a secao via \n\n.join() em chunk_by_type
             supabase.table("document_chunks").insert({
                 "document_id": doc_id,
                 "user_id": user["id"],
                 "chunk_index": chunk.index,
                 "content": chunk.content,
+                "section": chunk.section,
                 "token_count": chunk.token_count,
                 "embedding": embeddings[i],
                 "embedding_model": embedding_model,

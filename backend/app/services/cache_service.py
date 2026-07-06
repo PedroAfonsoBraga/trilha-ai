@@ -30,6 +30,7 @@ DEFAULT_TTL_HOURS: dict[str, int] = {
     "flashcard": 24,
     "edital_parser": 24,
     "search_rerank": 1,
+    "chat_query_rewrite": 1,
 }
 
 

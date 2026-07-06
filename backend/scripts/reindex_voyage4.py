@@ -110,6 +110,7 @@ async def reindex_document(supabase, doc: dict) -> dict:
             "user_id": user_id,
             "chunk_index": chunk.index,
             "content": chunk.content,
+            "section": chunk.section,
             "token_count": chunk.token_count,
             "embedding": embeddings[i],
             "embedding_model": embedding_model,
