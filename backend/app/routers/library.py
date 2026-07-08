@@ -74,7 +74,7 @@ async def search_library(body: dict, user: dict = Depends(get_current_user)):
     if not query:
         raise HTTPException(status_code=400, detail="query é obrigatória")
 
-    query_embedding = await embedding_service.gerar_embedding(query, input_type="query")
+    query_embedding = await embedding_service.gerar_embedding(query, input_type="query", user_id=user["id"])
 
     supabase = _get_supabase()
 

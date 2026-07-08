@@ -44,7 +44,7 @@ export default async function ConcursoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
           <a href="/dashboard" className="text-sm text-teal-600 hover:text-teal-700 mb-2 inline-block">

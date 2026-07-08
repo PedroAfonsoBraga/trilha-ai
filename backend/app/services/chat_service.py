@@ -123,7 +123,7 @@ async def _ensure_documents_chunked(
         texts = [c.content for c in chunks]
         doc_model = embedding_service.get_doc_model()
         try:
-            embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document", model=doc_model)
+            embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document", model=doc_model, user_id=user_id)
         except Exception as e:
             logger.error(f"Falha ao gerar embeddings para doc {doc_id}: {e}")
             continue

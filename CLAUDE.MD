@@ -17,7 +17,7 @@ Nome: Trilha (definitivo).
 - Email: Resend + React Email
 - Jobs: Inngest (serverless)
 - Export Anki: genanki (Python)
-- Monitoramento: Sentry + Posthog
+- Monitoramento: Sentry + Posthog + Vercel Analytics + Speed Insights
 
 ## Regras obrigatórias
 - Async/await em todo o backend — sem código síncrono em rotas

@@ -45,7 +45,8 @@ backend/
     │   │   ├── search_service.py ← busca semântica pgvector
 │   │   ├── chat_service.py  ← chat RAG com streaming
 │   │   ├── progress_service.py ← progresso do aluno
-│   │   └── admin_service.py ← administração
+│   │   ├── admin_service.py ← administração (usuários, suspender, reembolsar)
+│   │   └── admin_costs_service.py ← agregações de custo/uso de IA para o painel admin
 │   ├── models/
 │   │   ├── requests.py      ← Pydantic request models
 │   │   └── responses.py     ← Pydantic response models
@@ -141,12 +142,23 @@ RESEND_API_KEY=
 
 ## Custos — monitorar sempre
 # Antes de qualquer chamada IA, logar estimativa de custo
-# Claude Sonnet: $3/M input, $15/M output
+# Preços por provider/modelo ficam na tabela `precos_modelo` (ajustável sem deploy).
+# Fallback hardcoded em `llm_client.py` apenas se a tabela estiver vazia.
 # Custos de embeddings (atualizados Sprint 15)
 # voyage-3 (legado):   $0.06/M tokens
-# voyage-4-large:      $0.12/M tokens (200M tokens free)
-# voyage-4-lite:       $0.02/M tokens  (200M tokens free)
-# Registrar na tabela ai_usage_log: user_id, tokens, custo_estimado, feature
+# voyage-4-large:      $0.10/M tokens
+# voyage-4-lite:       $0.05/M tokens
+# Registrar na tabela ai_usage_log: user_id, tokens, custo_estimado, feature, provider, cache_hit, duracao_ms, status
+
+## Painel Admin de Custos (Sprint 17)
+# Endpoints em /api/admin/uso/* (router admin.py, service admin_costs_service.py):
+#   GET /api/admin/uso/resumo          → custo total, série temporal, variação
+#   GET /api/admin/uso/por-feature     → breakdown por feature
+#   GET /api/admin/uso/por-usuario     → custo por usuário (ordenado desc)
+#   GET /api/admin/uso/por-provider    → custo/taxa de erro/latência por modelo
+#   GET /api/admin/uso/outliers        → usuários acima de média + N*DP
+#   GET /api/admin/uso/cache-economia  → economia estimada por cache
+#   GET /api/admin/uso/usuario/{id}    → histórico linha a linha
 
 ## Testes
 - pytest + pytest-asyncio para todas as rotas

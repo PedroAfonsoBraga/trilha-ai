@@ -86,7 +86,7 @@ export function HowItWorksSection() {
     <section
       ref={sectionRef}
       id="como-funciona"
-      className="px-4 py-20 md:py-28"
+      className="overflow-hidden px-4 py-20 md:py-28"
     >
       <div className="mx-auto max-w-6xl">
         <h2

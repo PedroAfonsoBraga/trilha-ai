@@ -544,7 +544,7 @@ async def chunk_document(doc_id: str, user: dict = Depends(get_current_user)):
     texts = [c.content for c in chunks]
 
     try:
-        embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document", model=embedding_model)
+        embeddings = await embedding_service.gerar_embeddings_batch(texts, input_type="document", model=embedding_model, user_id=user["id"])
     except Exception as e:
         logger.error(f"Falha ao gerar embeddings: {e}")
         raise HTTPException(status_code=500, detail=f"Falha ao gerar embeddings: {str(e)}")

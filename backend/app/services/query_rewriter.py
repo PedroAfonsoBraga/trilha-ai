@@ -131,6 +131,7 @@ async def rewrite_query(
             max_tokens=300,
             temperature=0.1,
             user_id=user_id,
+            disable_reasoning=True,
         )
     except Exception as e:
         logger.warning("LLM query rewrite falhou: %s", e)

@@ -40,5 +40,5 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  return <>{children}</>;
+  return <div className="min-h-screen overflow-x-hidden bg-background">{children}</div>;
 }

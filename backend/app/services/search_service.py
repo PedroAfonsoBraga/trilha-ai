@@ -29,7 +29,7 @@ async def search_similar_chunks(
 ) -> List[Dict]:
     """Busca semântica pura via pgvector (mantida para compatibilidade)."""
     query_model = embedding_service.get_query_model()
-    query_embedding = await embedding_service.gerar_embedding(query, input_type="query", model=query_model)
+    query_embedding = await embedding_service.gerar_embedding(query, input_type="query", model=query_model, user_id=user_id)
 
     supabase = _get_supabase()
 
@@ -69,7 +69,7 @@ async def search_hybrid_chunks(
         Lista de chunks ordenados pelo score RRF decrescente.
     """
     query_model = embedding_service.get_query_model()
-    query_embedding = await embedding_service.gerar_embedding(query, input_type="query", model=query_model)
+    query_embedding = await embedding_service.gerar_embedding(query, input_type="query", model=query_model, user_id=user_id)
 
     supabase = _get_supabase()
 
@@ -177,6 +177,7 @@ async def rerank_chunks(
         max_tokens=256,
         temperature=0,
         user_id=user_id,
+        disable_reasoning=True,
     )
 
     try:

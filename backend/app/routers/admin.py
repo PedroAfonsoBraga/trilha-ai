@@ -10,14 +10,21 @@ import logging
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 
 from app.middleware.auth import get_current_user, require_admin
-from app.services import admin_service
+from app.services import admin_service, admin_costs_service
 
 
 class UnsuspendBody(BaseModel):
     plano_original: Literal["free", "estudante", "pro"] = "free"
+
+
+class PeriodoParams(BaseModel):
+    periodo: str = "30d"
+    de: Optional[str] = None
+    ate: Optional[str] = None
+
 
 load_dotenv()
 
@@ -155,3 +162,135 @@ async def refund_user(
     except Exception as e:
         logger.error(f"Erro ao reembolsar usuário {user_id}: {e}")
         raise HTTPException(status_code=500, detail="Erro ao reembolsar usuário")
+
+
+# ──────────────────────────────────────────────
+#  Uso e custos de IA — Painel de custos admin
+# ──────────────────────────────────────────────
+
+
+def _periodo_params(
+    periodo: str = Query("30d", description="Período: 7d, 30d, 90d ou custom via de/ate"),
+    de: Optional[str] = Query(None, description="Data início ISO"),
+    ate: Optional[str] = Query(None, description="Data fim ISO"),
+) -> PeriodoParams:
+    """Extrai parâmetros de período com validação via Pydantic."""
+    return PeriodoParams(periodo=periodo, de=de, ate=ate)
+
+
+@router.get("/uso/resumo")
+async def get_uso_resumo(
+    params: PeriodoParams = Depends(_periodo_params),
+    user: dict = Depends(require_admin),
+):
+    """Retorna resumo de custos e uso de IA no período."""
+    try:
+        return await admin_costs_service.resumo_uso(
+            periodo=params.periodo, de=params.de, ate=params.ate
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar resumo de uso: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar resumo de uso")
+
+
+@router.get("/uso/por-feature")
+async def get_uso_por_feature(
+    params: PeriodoParams = Depends(_periodo_params),
+    user: dict = Depends(require_admin),
+):
+    """Retorna custo/tokens/chamadas por feature."""
+    try:
+        return await admin_costs_service.custo_por_feature(
+            periodo=params.periodo, de=params.de, ate=params.ate
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar custo por feature: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar custo por feature")
+
+
+@router.get("/uso/por-usuario")
+async def get_uso_por_usuario(
+    params: PeriodoParams = Depends(_periodo_params),
+    plano: str = Query("todos", description="Filtrar por plano: free, estudante, pro, todos"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    user: dict = Depends(require_admin),
+):
+    """Retorna custo/chamadas por usuário (ordenado por custo desc)."""
+    try:
+        return await admin_costs_service.custo_por_usuario(
+            periodo=params.periodo,
+            de=params.de,
+            ate=params.ate,
+            plano=plano,
+            limit=limit,
+            offset=offset,
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar custo por usuário: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar custo por usuário")
+
+
+@router.get("/uso/por-provider")
+async def get_uso_por_provider(
+    params: PeriodoParams = Depends(_periodo_params),
+    user: dict = Depends(require_admin),
+):
+    """Retorna custo/chamadas/taxa de erro/latência por provider+modelo."""
+    try:
+        return await admin_costs_service.custo_por_provider(
+            periodo=params.periodo, de=params.de, ate=params.ate
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar custo por provider: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar custo por provider")
+
+
+@router.get("/uso/outliers")
+async def get_uso_outliers(
+    params: PeriodoParams = Depends(_periodo_params),
+    desvios: float = Query(2.0, ge=0.5, le=5.0, description="Número de desvios-padrão acima da média"),
+    user: dict = Depends(require_admin),
+):
+    """Retorna usuários com custo acima de média + N desvios-padrão."""
+    try:
+        return await admin_costs_service.outliers(
+            periodo=params.periodo, de=params.de, ate=params.ate, desvios=desvios
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar outliers de uso: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar outliers de uso")
+
+
+@router.get("/uso/cache-economia")
+async def get_uso_cache_economia(
+    params: PeriodoParams = Depends(_periodo_params),
+    user: dict = Depends(require_admin),
+):
+    """Estima economia gerada por cache_hit=true no período."""
+    try:
+        return await admin_costs_service.cache_economia(
+            periodo=params.periodo, de=params.de, ate=params.ate
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar economia de cache: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar economia de cache")
+
+
+@router.get("/uso/usuario/{user_id}")
+async def get_uso_usuario_detalhe(
+    user_id: str,
+    params: PeriodoParams = Depends(_periodo_params),
+    user: dict = Depends(require_admin),
+):
+    """Retorna histórico completo de uso de um usuário específico."""
+    try:
+        return await admin_costs_service.detalhe_usuario(
+            user_id=user_id,
+            periodo=params.periodo,
+            de=params.de,
+            ate=params.ate,
+        )
+    except Exception as e:
+        logger.error("Erro ao buscar detalhe de uso do usuário %s: %s", user_id, e)
+        raise HTTPException(status_code=500, detail="Erro ao buscar detalhe de uso do usuário")

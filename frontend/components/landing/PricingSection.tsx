@@ -84,7 +84,7 @@ export function PricingSection() {
   };
 
   return (
-    <section ref={sectionRef} id="pricing" className="px-4 py-20 md:py-28">
+    <section ref={sectionRef} id="pricing" className="overflow-hidden px-4 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
         <h2 ref={titleRef} className="text-center text-3xl font-bold text-foreground md:text-4xl">Escolha seu plano</h2>
         <p className="mt-4 text-center text-muted-foreground">Comece grátis e faça upgrade quando quiser</p>

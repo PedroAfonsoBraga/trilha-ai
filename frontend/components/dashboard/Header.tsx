@@ -17,7 +17,7 @@ const pathLabels: Record<string, string> = {
   "/dashboard/library": "Biblioteca",
   "/dashboard/plano": "Meu Plano",
   "/dashboard/custos": "Custos de IA",
-  "/dashboard/admin": "Painel Administrativo",
+  "/admin": "Painel Administrativo",
   "/dashboard/onboarding": "Onboarding",
 };
 
@@ -82,7 +82,7 @@ export default function Header({ nome }: HeaderProps) {
       {/* Right: Search + Notifications + Avatar */}
       <div className="flex items-center gap-4">
         {/* Search */}
-        <div className="relative hidden sm:block">
+        <div className="relative hidden md:block">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
           <input
             type="text"

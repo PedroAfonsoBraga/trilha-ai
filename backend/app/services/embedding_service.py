@@ -3,7 +3,7 @@ import logging
 import os
 import random
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 import httpx
@@ -72,10 +72,101 @@ async def _post_with_retry(
     return response
 
 
+# Cache em memória para preços de embedding
+# Chave: model  Valor: (preco_por_token, timestamp_expira)
+_PRECO_CACHE: dict[str, tuple[float, float]] = {}
+_PRECO_CACHE_DURATION = 300  # 5 minutos
+
+
+def _estimativa_tokens(texto: str) -> int:
+    """Estimativa simples de tokens: palavras * 1.3 (média pt-BR)."""
+    if not texto:
+        return 0
+    return int(len(texto.split()) * 1.3)
+
+
+def _buscar_preco_embedding(model: str) -> float:
+    """Busca preço de input por token em precos_modelo; fallback zero.
+
+    Usa cache em memória _PRECO_CACHE para evitar query ao banco a cada batch.
+    """
+    import time
+
+    now = time.monotonic()
+    entry = _PRECO_CACHE.get(model)
+    if entry and now < entry[1]:
+        return entry[0]
+
+    try:
+        from supabase import create_client
+        supabase = create_client(
+            os.getenv("SUPABASE_URL", ""),
+            os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
+        )
+        result = (
+            supabase.table("precos_modelo")
+            .select("preco_input_por_mi")
+            .eq("provider", "voyage")
+            .eq("model", model)
+            .order("ativo_desde", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            preco = float(result.data[0].get("preco_input_por_mi", 0) or 0) / 1_000_000
+            _PRECO_CACHE[model] = (preco, now + _PRECO_CACHE_DURATION)
+            return preco
+    except Exception as e:
+        logger.warning("Falha ao buscar preço de embedding %s: %s", model, e)
+    # Fallback: cache com zero para evitar repetir a falha por 5 min
+    _PRECO_CACHE[model] = (0.0, now + _PRECO_CACHE_DURATION)
+    return 0.0
+
+
+async def _log_embedding_usage(
+    user_id: Optional[str],
+    model: str,
+    input_type: str,
+    texts: List[str],
+) -> None:
+    """Registra uso de embeddings Voyage em ai_usage_log (fire-and-forget)."""
+    if not user_id:
+        logger.debug("Skipping embedding ai_usage_log: user_id ausente")
+        return
+
+    total_input_tokens = sum(_estimativa_tokens(t) for t in texts)
+    preco_por_token = _buscar_preco_embedding(model)
+    custo_usd = total_input_tokens * preco_por_token
+    feature = "embedding_documento" if input_type == "document" else "embedding_query"
+
+    try:
+        from supabase import create_client
+        supabase = create_client(
+            os.getenv("SUPABASE_URL", ""),
+            os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
+        )
+        payload = {
+            "user_id": user_id,
+            "feature": feature,
+            "model": model,
+            "provider": "voyage",
+            "input_tokens": total_input_tokens,
+            "output_tokens": 0,
+            "reasoning_tokens": 0,
+            "cache_hit": False,
+            "status": "sucesso",
+            "custo_estimado_usd": round(custo_usd, 6),
+        }
+        supabase.table("ai_usage_log").insert(payload).execute()
+    except Exception as e:
+        logger.warning("Falha ao registrar embedding em ai_usage_log: %s", e)
+
+
 async def gerar_embeddings_batch(
     texts: List[str],
     input_type: str = "document",
     model: str = None,
+    user_id: Optional[str] = None,
 ) -> List[List[float]]:
     if not VOYAGE_API_KEY:
         raise RuntimeError("VOYAGE_API_KEY não configurada")
@@ -106,9 +197,14 @@ async def gerar_embeddings_batch(
             data = response.json()
             all_embeddings.extend([emb["embedding"] for emb in data["data"]])
 
+    # Log fire-and-forget (não bloqueia retorno)
+    await _log_embedding_usage(user_id=user_id, model=model, input_type=input_type, texts=cleaned)
+
     return all_embeddings
 
 
-async def gerar_embedding(text: str, input_type: str = "query", model: str = None) -> List[float]:
-    embeddings = await gerar_embeddings_batch([text], input_type=input_type, model=model)
+async def gerar_embedding(
+    text: str, input_type: str = "query", model: str = None, user_id: Optional[str] = None
+) -> List[float]:
+    embeddings = await gerar_embeddings_batch([text], input_type=input_type, model=model, user_id=user_id)
     return embeddings[0]

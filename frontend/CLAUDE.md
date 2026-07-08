@@ -5,6 +5,7 @@
 - Tailwind CSS + shadcn/ui
 - TypeScript estrito (strict: true no tsconfig)
 - Deploy: Vercel
+- Observabilidade: Vercel Web Analytics + Speed Insights (free tier, `@vercel/analytics` + `@vercel/speed-insights`)
 
 ## Estrutura de pastas
 frontend/

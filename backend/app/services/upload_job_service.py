@@ -301,7 +301,7 @@ async def _run_upload_pipeline(
     texts = [c.content for c in chunks]
     try:
         embeddings = await embedding_service.gerar_embeddings_batch(
-            texts, input_type="document", model=embedding_model
+            texts, input_type="document", model=embedding_model, user_id=user_id
         )
     except Exception as e:
         logger.exception("Job %s: falha ao gerar embeddings", job_id)

@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import PosthogProvider from "@/components/app/posthog-provider";
 
 const cabinetGrotesk = localFont({
@@ -51,6 +53,8 @@ export default function RootLayout({
             duration: 4000,
           }}
         />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

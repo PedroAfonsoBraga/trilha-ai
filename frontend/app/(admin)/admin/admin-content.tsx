@@ -101,7 +101,7 @@ export default function AdminDashboardContent({ stats, error, accessToken: _acce
       </div>
 
       {/* Navigation */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <a
           href="/admin/usuarios"
           className="rounded-xl bg-slate-800 p-6 border border-slate-700 hover:border-teal-500/50 transition-all group"
@@ -109,6 +109,15 @@ export default function AdminDashboardContent({ stats, error, accessToken: _acce
           <h3 className="font-semibold text-white group-hover:text-teal-400">Usuários</h3>
           <p className="mt-1.5 text-sm text-slate-400">
             Ver lista completa de usuários, uso e custos
+          </p>
+        </a>
+        <a
+          href="/admin/custos"
+          className="rounded-xl bg-slate-800 p-6 border border-slate-700 hover:border-teal-500/50 transition-all group"
+        >
+          <h3 className="font-semibold text-white group-hover:text-teal-400">Custos de IA</h3>
+          <p className="mt-1.5 text-sm text-slate-400">
+            Monitoramento detalhado de uso e custo por feature/provider
           </p>
         </a>
         <a

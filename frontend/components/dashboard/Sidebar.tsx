@@ -42,7 +42,7 @@ const generalItems: NavItem[] = [
 
 const adminItem: NavItem = {
   label: "Admin",
-  href: "/dashboard/admin",
+  href: "/admin",
   icon: <Shield size={18} />,
   badge: "Admin",
 };
